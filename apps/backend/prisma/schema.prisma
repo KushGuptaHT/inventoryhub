@@ -1,0 +1,504 @@
+// ============================================================================
+// INVENTORYHUB PRISMA SCHEMA
+// ============================================================================
+// 
+// MISSION: Safe stock movement between warehouses under concurrency
+// SOURCE: Requirements PDF Section 4.1 - Data Integrity is the heart
+// ARCHITECTURE: Requirements PDF Section 3 + Architecture Document
+//
+// This schema implements the dual-ledger inventory pattern:
+// 1. stock_movements: Immutable audit trail (source of truth)
+// 2. inventory_stock: Denormalized snapshot (performance layer)
+//
+// See DECISION_LOG.md for rationale behind every table.
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// TABLE 1: USERS
+// ============================================================================
+// WHY THIS TABLE:
+// - Requirement 3.1: Email + password login with two roles (Manager, Operator)
+// - Role enforcement must happen server-side on EVERY route (not UI hidden)
+// - Architecture Doc Section 17: API Design Direction
+//
+// DESIGN DECISIONS:
+// - id: CUID for distributed ID generation (no DB sequence dependency)
+// - email: UNIQUE constraint (prevents duplicate accounts)
+// - passwordHash: Never store plain passwords
+// - role: ENUM-like string ("MANAGER" | "OPERATOR")
+// - createdAt: Audit timestamp
+//
+// SECURITY NOTE: Password hashing happens in Fastify (not in DB)
+// ============================================================================
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         String // "MANAGER" or "OPERATOR" - see requirements 3.1
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
+
+// ============================================================================
+// TABLE 2: WAREHOUSES
+// ============================================================================
+// WHY THIS TABLE:
+// - Requirement 3.2: CRUD for warehouses (name, code, address)
+// - Physical storage locations for inventory
+// - Multiple warehouses enable transfer requirements (3.3)
+//
+// DESIGN DECISIONS:
+// - code: UNIQUE (identifier for business logic)
+// - name + address: Human-readable data
+// - isActive: Soft delete pattern (don't lose historical data)
+//
+// PERFORMANCE: Indexed on code for fast lookups in transfers
+// ============================================================================
+model Warehouse {
+  id        String   @id @default(cuid())
+  code      String   @unique // Unique warehouse code for transfers
+  name      String
+  address   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  inventoryStock     InventoryStock[]
+  stockMovementsFrom StockMovement[]  @relation("StockMovementFrom")
+  stockMovementsTo   StockMovement[]  @relation("StockMovementTo")
+  alerts             Alert[]
+  purchaseOrders     PurchaseOrder[]
+
+  @@index([code])
+}
+
+// ============================================================================
+// TABLE 3: SKUS (Stock Keeping Units)
+// ============================================================================
+// WHY THIS TABLE:
+// - Requirement 3.2: CRUD for SKUs (code, name, unit cost, reorder threshold, supplier)
+// - Products/inventory items stored in warehouses
+// - SKU master data (immutable once created, only Managers can edit)
+//
+// DESIGN DECISIONS:
+// - code: UNIQUE (unique product identifier)
+// - unitCost: For inventory valuation (dashboard shows total stock value)
+// - reorderThreshold: Triggers low-stock alerts (Requirement 3.4)
+// - preferredSupplier: For reorder workflow (Requirement 3.5)
+//
+// CACHING: Hot SKU lookups by code cached in Redis (Architecture Doc 14)
+// ============================================================================
+model SKU {
+  id                String   @id @default(cuid())
+  code              String   @unique // Unique SKU code - hot lookup cached in Redis
+  name              String
+  description       String?
+  unitCost          Decimal  @db.Decimal(10, 2) // For inventory valuation
+  reorderThreshold  Int      @default(50) // Triggers alert when available < this (Req 3.4)
+  preferredSupplier String? // For PO workflow (Req 3.5)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relationships
+  inventoryStock     InventoryStock[]
+  stockMovements     StockMovement[]
+  alerts             Alert[]
+  purchaseOrderLines PurchaseOrderLine[]
+  importRows         ImportRow[]
+
+  @@index([code])
+  @@index([reorderThreshold]) // For finding low-stock items
+}
+
+// ============================================================================
+// TABLE 4: INVENTORY_STOCK (Denormalized Snapshot)
+// ============================================================================
+// WHY THIS TABLE (Dual Ledger Pattern):
+// - stock_movements is the SOURCE OF TRUTH (immutable ledger)
+// - inventory_stock is the PERFORMANCE LAYER (denormalized snapshot)
+// - Architecture Doc Section 7: "common production inventory design"
+//
+// DESIGN DECISIONS:
+// - Composite key: (skuId, warehouseId) - only ONE inventory level per SKU per warehouse
+// - stockLevel: Total stock in warehouse
+// - reserved: Committed but not yet shipped (affects available calculation)
+// - available = stockLevel - reserved
+// - UPDATED by stock movement processors
+// - NOT directly written by APIs (movements update it)
+//
+// CONCURRENCY PATTERN: Row locking happens on this table
+// - postgres: SELECT...FOR UPDATE locks this row during transfer
+// - Requirement 3.3: "Transfers must be atomic"
+// - Architecture Doc Section 10: "Concurrency Strategy - row-level locking"
+//
+// PERFORMANCE:
+// - Indexed on (skuId, warehouseId) for fast lookups
+// - Dashboard queries hit this, not stock_movements (fast aggregations)
+// ============================================================================
+model InventoryStock {
+  id             String    @id @default(cuid())
+  skuId          String
+  warehouseId    String
+  stockLevel     Int       @default(0) // Total stock (can be 0, never negative)
+  reserved       Int       @default(0) // Reserved quantity (committed orders)
+  // Formula: available = stockLevel - reserved (shown in UI)
+  lastMovementAt DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  // Relationships
+  sku       SKU       @relation(fields: [skuId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  // Unique constraint: only one inventory record per (SKU, warehouse)
+  @@unique([skuId, warehouseId])
+  @@index([warehouseId])
+  @@index([stockLevel]) // For low-stock queries
+}
+
+// ============================================================================
+// TABLE 5: STOCK_MOVEMENTS (Immutable Audit Ledger)
+// ============================================================================
+// WHY THIS TABLE (Requirements 3.3):
+// - "Every movement creates an immutable stock_movement row"
+// - This is APPEND-ONLY (never update, never delete)
+// - Source of truth for all stock changes
+// - Full audit trail for regulatory compliance
+// - Can rebuild inventory_stock from movements
+//
+// DESIGN DECISIONS:
+// - type: "RECEIPT" | "ADJUSTMENT" | "TRANSFER"
+// - quantity: Always positive, sign determined by type
+// - fromWarehouse/toWarehouse: TRANSFER moves from src to dest
+//   - RECEIPT: fromWarehouse = NULL, toWarehouse = target
+//   - ADJUSTMENT: fromWarehouse = NULL, toWarehouse = target
+//   - TRANSFER: both set, atomic transaction ensures both succeed or both fail
+// - notes: Audit field (why this happened)
+// - createdBy: Who made this change (user ID for audit)
+// - createdAt: Immutable timestamp
+//
+// CONCURRENCY & ATOMICITY (Architecture Doc Section 9):
+// - For TRANSFER: Both rows (from_movement, to_movement) created in single transaction
+// - Requirement 3.3: "transfer must be atomic"
+// - Either both succeed or both roll back
+//
+// PERFORMANCE:
+// - Indexed on (skuId, createdAt) for movement history queries
+// - Dashboard moves history filtered by date/SKU/warehouse
+// ============================================================================
+model StockMovement {
+  id              String   @id @default(cuid())
+  type            String // "RECEIPT" | "ADJUSTMENT" | "TRANSFER"
+  skuId           String
+  quantity        Int // Positive number (sign determined by type)
+  fromWarehouse   String? // NULL for RECEIPT/ADJUSTMENT, SET for TRANSFER source
+  toWarehouse     String // SET for all types (RECEIPT target, ADJUSTMENT target, TRANSFER dest)
+  notes           String? // Reason for movement (audit field)
+  createdByUserId String // User who triggered movement
+  createdAt       DateTime @default(now())
+
+  // Relationships
+  sku         SKU        @relation(fields: [skuId], references: [id], onDelete: Cascade)
+  source      Warehouse? @relation("StockMovementFrom", fields: [fromWarehouse], references: [id])
+  destination Warehouse  @relation("StockMovementTo", fields: [toWarehouse], references: [id])
+
+  @@index([skuId, createdAt]) // For movement history queries
+  @@index([toWarehouse])
+  @@index([fromWarehouse])
+  @@index([type])
+}
+
+// ============================================================================
+// TABLE 6: ALERTS
+// ============================================================================
+// WHY THIS TABLE (Requirements 3.4):
+// - "When movement causes available < reorder_threshold, alert is created"
+// - Alerts are deduplicated: max 1 open per (SKU, warehouse)
+// - Non-critical: created ASYNCHRONOUSLY via BullMQ queue (not blocking API)
+// - Architecture Doc Section 4 (Async Workflow): alerts are non-critical path
+//
+// DESIGN DECISIONS:
+// - status: "OPEN" | "ACKNOWLEDGED" | "RESOLVED"
+// - (skuId, warehouseId) UNIQUE when OPEN (prevents duplicate alerts)
+// - acknowledgedAt/resolvedAt: Timestamps for audit trail
+//
+// ASYNC PATTERN (Architecture Doc Section 11):
+// - Movement happens (sync, fast)
+// - API response sent immediately
+// - Alert job enqueued to BullMQ (async)
+// - Alert inserted 1-2 seconds later
+// - Dashboard refetches and sees new alert (via TanStack Query)
+//
+// IDEMPOTENCY (Architecture Doc Section 13):
+// - Job checks if alert already exists before inserting
+// - If duplicate alert job runs, no new row created
+// ============================================================================
+model Alert {
+  id               String    @id @default(cuid())
+  skuId            String
+  warehouseId      String
+  status           String    @default("OPEN") // "OPEN" | "ACKNOWLEDGED" | "RESOLVED"
+  availableStock   Int // Snapshot of available at alert time
+  reorderThreshold Int // Snapshot of threshold
+  acknowledgedAt   DateTime?
+  acknowledgedBy   String? // User ID who acknowledged
+  resolvedAt       DateTime?
+  resolvedBy       String? // User ID who resolved
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relationships
+  sku           SKU             @relation(fields: [skuId], references: [id], onDelete: Cascade)
+  warehouse     Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  auditLogs     AlertAuditLog[]
+  purchaseOrder PurchaseOrder? // One PO per alert (Req 3.5)
+
+  // Deduplication: only one open alert per (SKU, warehouse)
+  @@unique([skuId, warehouseId], name: "unique_open_alert")
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// TABLE 7: ALERT_AUDIT_LOGS
+// ============================================================================
+// WHY THIS TABLE:
+// - Requirements 3.4: "State transitions are audited"
+// - Every status change (OPEN → ACKNOWLEDGED → RESOLVED) logged
+// - Who changed it, when, why
+//
+// DESIGN DECISIONS:
+// - One row per state change
+// - changedBy: User who made state change
+// - previousStatus: What it was before
+// - newStatus: What it is now
+// - reason: Why (optional notes)
+//
+// AUDIT TRAIL USE:
+// - Compliance: Show manager what happened to alert
+// - Debugging: Trace alert lifecycle
+// ============================================================================
+model AlertAuditLog {
+  id             String   @id @default(cuid())
+  alertId        String
+  previousStatus String
+  newStatus      String
+  changedBy      String // User ID
+  reason         String?
+  createdAt      DateTime @default(now())
+
+  // Relationships
+  alert Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([alertId, createdAt])
+}
+
+// ============================================================================
+// TABLE 8: PURCHASE_ORDERS
+// ============================================================================
+// WHY THIS TABLE (Requirements 3.5):
+// - "Manager triggers reorder from alert → creates PO in draft state"
+// - State machine: draft → sent → received (or cancelled)
+// - Requirement 4.1 (Role enforcement): Only Managers can send POs
+//
+// DESIGN DECISIONS:
+// - status: "DRAFT" | "SENT" | "RECEIVED" | "CANCELLED"
+// - alertId: Links PO to the low-stock alert that triggered it
+// - (ONE alert → ZERO or ONE PO, relationship enforced)
+// - sentAt: When PO was marked sent (locked from editing)
+// - receivedAt: When marked received (auto-creates receipt movements)
+// - receivedBy: Who confirmed receipt
+//
+// STATE TRANSITIONS (Requirement 3.5):
+// - draft → sent: Only Manager role allowed (server-side check)
+// - sent → received: Operator or Manager (auto-creates receipt movement)
+// - any → cancelled: Manager only
+//
+// ATOMIC RECEIPT (Requirement 3.3):
+// - When status changed to RECEIVED:
+//   1. Fetch all PurchaseOrderLine items
+//   2. For each line, create StockMovement(RECEIPT) with quantity
+//   3. Update inventory_stock.stockLevel
+//   4. All in single transaction
+//   5. Either entire PO succeeds or entire PO rolls back
+// ============================================================================
+model PurchaseOrder {
+  id          String    @id @default(cuid())
+  alertId     String    @unique // Link to triggering alert (one PO per alert max)
+  status      String    @default("DRAFT") // "DRAFT" | "SENT" | "RECEIVED" | "CANCELLED"
+  poNumber    String    @unique // Human-readable PO number
+  warehouseId String // Which warehouse receiving stock
+  sentAt      DateTime?
+  sentBy      String? // User ID who sent
+  receivedAt  DateTime?
+  receivedBy  String? // User ID who confirmed receipt
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relationships
+  alert     Alert                  @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  warehouse Warehouse              @relation(fields: [warehouseId], references: [id])
+  lineItems PurchaseOrderLine[]
+  auditLog  PurchaseOrderAuditLog?
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// TABLE 9: PURCHASE_ORDER_LINES
+// ============================================================================
+// WHY THIS TABLE:
+// - PO can have multiple line items (SKU + quantity pairs)
+// - Example: PO for warehouse can request 50 units of SKU-A, 100 of SKU-B
+//
+// DESIGN DECISIONS:
+// - poId: Links to PurchaseOrder
+// - skuId: Which product
+// - quantityOrdered: How many units
+// - quantityReceived: How many actually arrived (may differ)
+// - unitPrice: Price per unit at time of PO
+//
+// ATOMIC RECEIPT LOGIC:
+// - When PO marked RECEIVED, loop through all lines
+// - For each line: create StockMovement(RECEIPT, quantityReceived)
+// - Update inventory_stock.stockLevel
+// ============================================================================
+model PurchaseOrderLine {
+  id               String    @id @default(cuid())
+  poId             String
+  skuId            String
+  quantityOrdered  Int
+  quantityReceived Int       @default(0)
+  unitPrice        Decimal   @db.Decimal(10, 2)
+  receivedAt       DateTime?
+  createdAt        DateTime  @default(now())
+
+  // Relationships
+  purchaseOrder PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+  sku           SKU           @relation(fields: [skuId], references: [id])
+
+  @@index([poId])
+  @@index([skuId])
+}
+
+// ============================================================================
+// TABLE 10: PURCHASE_ORDER_AUDIT_LOG
+// ============================================================================
+model PurchaseOrderAuditLog {
+  id             String   @id @default(cuid())
+  poId           String   @unique
+  previousStatus String
+  newStatus      String
+  changedBy      String // User ID
+  reason         String?
+  createdAt      DateTime @default(now())
+
+  // Relationships
+  purchaseOrder PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
+
+// ============================================================================
+// TABLE 11: IMPORTS
+// ============================================================================
+// WHY THIS TABLE (Requirements 3.6):
+// - "Users can upload CSV of SKUs or stock receipts"
+// - Import runs in background worker (BullMQ)
+// - Progress reported to UI (polling or SSE)
+//
+// DESIGN DECISIONS:
+// - type: "SKU_IMPORT" | "RECEIPT_IMPORT"
+// - status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED"
+// - totalRows: How many rows in CSV
+// - processedRows: How many processed so far
+// - succeededRows: How many succeeded
+// - failedRows: How many failed
+// - s3Url or filePath: Where CSV stored
+//
+// ASYNC PROCESSING (Architecture Doc Section 11):
+// - POST /imports/upload returns import record immediately
+// - BullMQ job enqueued for processing
+// - UI polls GET /imports/:id for progress
+// - Job processes rows, updates processedRows count
+// - Final status = COMPLETED or FAILED
+//
+// IDEMPOTENT PROCESSING (Requirements 3.6):
+// - "Partial failures: user sees which succeeded, which failed"
+// - Each row processed independently
+// - Failures don't rollback successes
+// ============================================================================
+model Import {
+  id            String    @id @default(cuid())
+  type          String // "SKU_IMPORT" | "RECEIPT_IMPORT"
+  status        String    @default("PENDING") // "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED"
+  totalRows     Int
+  processedRows Int       @default(0)
+  succeededRows Int       @default(0)
+  failedRows    Int       @default(0)
+  fileName      String
+  s3Url         String? // If stored in S3, else local storage
+  uploadedBy    String // User ID
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  // Relationships
+  rows ImportRow[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// TABLE 12: IMPORT_ROWS
+// ============================================================================
+// WHY THIS TABLE:
+// - Track status of each row in import
+// - Which succeeded, which failed, why
+//
+// DESIGN DECISIONS:
+// - rowNumber: Line number in CSV (for user reference)
+// - data: Raw CSV row data (JSON or text)
+// - status: "PENDING" | "SUCCESS" | "FAILED"
+// - errorMessage: If failed, why (parsing error, validation error, etc)
+//
+// PARTIAL FAILURE HANDLING (Requirements 3.6):
+// - Each row independent
+// - Success doesn't depend on previous rows
+// - User sees detailed per-row status
+// ============================================================================
+model ImportRow {
+  id           String   @id @default(cuid())
+  importId     String
+  rowNumber    Int // Line in CSV
+  status       String // "PENDING" | "SUCCESS" | "FAILED"
+  data         String   @db.Text // Raw row data (JSON)
+  errorMessage String? // Why it failed (if status = FAILED)
+  skuId        String? // For SKU_IMPORT: which SKU created
+  createdAt    DateTime @default(now())
+
+  // Relationships
+  import Import @relation(fields: [importId], references: [id], onDelete: Cascade)
+  sku    SKU?   @relation(fields: [skuId], references: [id])
+
+  @@index([importId, status])
+}
