@@ -15,7 +15,7 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 ### Phase 2: Stock Movement Core (12 hours) - STARTING NOW
 - [ ] Auth middleware + role enforcement (MANAGER | OPERATOR)
 - [ ] User CRUD API (register, login, list users)
-- [ ] Warehouse CRUD API (create, read, update, delete)
+- [x] Warehouse CRUD API (create, read, update, delete)
 - [ ] SKU CRUD API (create, read, update, delete, with caching)
 - [ ] Stock receipt API (POST /movements/receipt)
 - [ ] Stock adjustment API (POST /movements/adjustment)

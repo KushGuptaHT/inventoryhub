@@ -2,10 +2,13 @@ import "dotenv/config";
 import Fastify from "fastify";
 import { prisma } from "./lib/prisma";
 import { redis } from "./lib/redis";
+import { warehouseRoutes } from "./routes/warehouses";
 
 export const app = Fastify({
   logger: true,
 });
+
+app.register(warehouseRoutes, { prefix: "/warehouses" });
 
 const healthCheckTimeoutMs = 2_000;
 
