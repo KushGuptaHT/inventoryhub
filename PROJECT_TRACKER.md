@@ -57,6 +57,7 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 | Branch | Purpose | Status | Key Checks |
 | --- | --- | --- | --- |
 | `phase-1-backend-foundation` | Establish reusable Prisma/Redis clients and real infrastructure health checks. | Ready for review | TypeScript check passed; `/health` smoke test returned DB + Redis connected. |
+| `feature/warehouse-crud` | Implement warehouse CRUD endpoints and server-side role checks. | Started | Based on phase-1-backend-foundation; branch created after pull. |
 
 ## Required Deliverables
 
@@ -108,9 +109,10 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 ## Current Git Status
 
 ```
-Branch: phase-1-backend-foundation (tracking origin/phase-1-backend-foundation)
-Commits: 8 total
-Latest: 072727a - docs: track backend foundation branch
+Branch: feature/warehouse-crud (based on phase-1-backend-foundation)
+Commits: 9 total
+Latest: 021a139 - docs: add phase 1 api plan for backend feature work
+Status: feature branch created after pulling latest foundation work
 ```
 
 ## What is GitLens?
