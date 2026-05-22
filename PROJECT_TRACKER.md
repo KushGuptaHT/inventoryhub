@@ -17,6 +17,12 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [ ] Performance seed dataset and query tuning
 - [ ] Final tests, docs, and Loom walkthrough
 
+## Branch Work Log
+
+| Branch | Purpose | Status | Key Checks |
+| --- | --- | --- | --- |
+| `phase-1-backend-foundation` | Establish reusable Prisma/Redis clients and real infrastructure health checks. | Ready for review | TypeScript check passed; `/health` smoke test returned DB + Redis connected. |
+
 ## Required Deliverables
 
 - [ ] Clean Git history with small focused commits and meaningful messages
