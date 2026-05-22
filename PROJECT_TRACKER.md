@@ -2,20 +2,55 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase
+## Current Phase: STEP 1 COMPLETE ✅
 
+### Phase 1: Foundation (10 hours)
 - [x] Infrastructure setup: Fastify, Docker, PostgreSQL, Redis, Prisma schema, migration, generated Prisma client
 - [x] Backend foundation: shared Prisma client, shared Redis client, dependency-aware `/health`
-- [ ] Warehouse CRUD API
-- [ ] SKU CRUD API
-- [ ] Auth and role enforcement
-- [ ] Stock receipt, adjustment, and transfer APIs
-- [ ] Atomic transfer transaction with row-level locking
-- [ ] BullMQ workers for alerts, imports, and PO fulfillment
+- [x] 12-table Prisma schema created with all models (users, warehouses, skus, inventory_stock, stock_movements, alerts, alert_audit_logs, purchase_orders, purchase_order_lines, purchase_order_audit_log, imports, import_rows)
+- [x] Migration 20260522114337_init executed
+- [x] Database fully seeded with schema
+- [x] Prisma Client (v7.8.0) generated to src/generated/prisma
+
+### Phase 2: Stock Movement Core (12 hours) - STARTING NOW
+- [ ] Auth middleware + role enforcement (MANAGER | OPERATOR)
+- [ ] User CRUD API (register, login, list users)
+- [ ] Warehouse CRUD API (create, read, update, delete)
+- [ ] SKU CRUD API (create, read, update, delete, with caching)
+- [ ] Stock receipt API (POST /movements/receipt)
+- [ ] Stock adjustment API (POST /movements/adjustment)
+- [ ] Stock transfer API (POST /movements/transfer)
+- [ ] Atomic transfer transaction with row-level SELECT...FOR UPDATE locking
+- [ ] InventoryStock auto-update on movements
+
+### Phase 3: Queues & Alerts (10 hours)
+- [ ] BullMQ setup (alerts, imports, po-fulfillment queues)
+- [ ] Alert creation worker (async, deduplicated)
+- [ ] Low-stock alert trigger logic
+- [ ] PO fulfillment worker
+- [ ] CSV import worker
+
+### Phase 4: Caching & Performance (8 hours)
 - [ ] Redis caching and invalidation
-- [ ] Frontend integration
-- [ ] Performance seed dataset and query tuning
-- [ ] Final tests, docs, and Loom walkthrough
+- [ ] Hot SKU lookups cached by code
+- [ ] Dashboard summary cache with TTL
+- [ ] Seed dataset: 5 warehouses, 10,000 SKUs, 500,000 movements
+- [ ] Query optimization with EXPLAIN ANALYZE
+
+### Phase 5: Frontend Integration (12 hours)
+- [ ] TanStack Query integration
+- [ ] TanStack Table for movement history
+- [ ] Optimistic updates for UX
+- [ ] Dashboard UI
+- [ ] Forecasting view
+
+### Phase 6: Testing & Docs (8 hours)
+- [ ] Unit tests with Vitest
+- [ ] Integration tests (real DB + concurrency tests)
+- [ ] E2E tests with Playwright (50 concurrent transfers test)
+- [ ] README.md with setup and architecture
+- [ ] ARCHITECTURE.md with decisions
+- [ ] 5-7 minute Loom walkthrough
 
 ## Branch Work Log
 
@@ -62,3 +97,40 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [x] Backend TypeScript check: `pnpm --dir apps/backend exec tsc --noEmit`
 - [x] `/health` smoke test with Fastify `app.inject()` returned `200` and `{"status":"ok","database":"connected","redis":"connected"}`
 - [x] Git remote configured: `https://github.com/KushGuptaHT/inventoryhub.git`
+- [x] **NEW (May 22, 2026 09:15 UTC)**: Docker containers running (PostgreSQL 16, Redis 7)
+- [x] **NEW (May 22, 2026 19:41 UTC)**: Prisma schema with 12 models created
+- [x] **NEW (May 22, 2026 19:41 UTC)**: Migration executed: `20260522114337_init`
+- [x] **NEW (May 22, 2026 19:41 UTC)**: All 12 tables created in PostgreSQL
+- [x] **NEW (May 22, 2026 19:41 UTC)**: Prisma Client v7.8.0 generated
+- [x] **NEW (May 22, 2026 19:41 UTC)**: PrismaPg adapter configured for PostgreSQL
+- [x] **NEXT**: Commit changes and move to Phase 2 APIs
+
+## Current Git Status
+
+```
+Branch: phase-1-backend-foundation (tracking origin/phase-1-backend-foundation)
+Commits: 8 total
+Latest: 072727a - docs: track backend foundation branch
+```
+
+## What is GitLens?
+
+**GitLens** is a VS Code extension that shows:
+- Git blame (who changed each line, when)
+- Commit history (hover over code to see commit details)
+- Repository insights
+- Branch tracking
+
+**You're NOT getting it because:**
+- It's an optional VS Code extension
+- You may not have it installed, OR
+- If installed, you need to open a file with code in it
+- It integrates with your git repository
+
+**To enable it in VS Code:**
+1. Open VS Code
+2. Go to Extensions (Ctrl+Shift+X)
+3. Search "GitLens"
+4. Click Install (published by eamodio)
+5. Reload VS Code
+6. Open any file in the project → You'll see git blame on the right side
