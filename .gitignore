@@ -1,0 +1,25 @@
+# Git metadata is stored here because the environment has a locked empty `.git` directory.
+.git-real/
+
+# Dependencies
+node_modules/
+
+# Build outputs and caches
+dist/
+build/
+.cache/
+.vite/
+.turbo/
+coverage/
+playwright-report/
+test-results/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
