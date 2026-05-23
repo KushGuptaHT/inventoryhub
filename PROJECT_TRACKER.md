@@ -2,26 +2,26 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase: STEP 1 COMPLETE ✅
+## Current Phase: Phase 1 — In progress
 
 ### Phase 1: Foundation (10 hours)
 - [x] Infrastructure setup: Fastify, Docker, PostgreSQL, Redis, Prisma schema, migration, generated Prisma client
 - [x] Backend foundation: shared Prisma client, shared Redis client, dependency-aware `/health`
-- [x] 12-table Prisma schema created with all models (users, warehouses, skus, inventory_stock, stock_movements, alerts, alert_audit_logs, purchase_orders, purchase_order_lines, purchase_order_audit_log, imports, import_rows)
+- [x] 12-table Prisma schema created with all models
 - [x] Migration 20260522114337_init executed
-- [x] Database fully seeded with schema
-- [x] Prisma Client (v7.8.0) generated to src/generated/prisma
+- [x] Auth: JWT login + register (`POST /auth/login`, `POST /auth/register`)
+- [x] Auth middleware: `authenticate` + `requireRole` (MANAGER | OPERATOR)
+- [x] Warehouse CRUD API with server-side role checks (Manager: POST/PATCH/DELETE; both: GET)
+- [x] Dev user seed (manager + operator test accounts)
+- [ ] SKU CRUD API (create, read, update, delete, with Redis caching)
 
-### Phase 2: Stock Movement Core (12 hours) - STARTING NOW
-- [ ] Auth middleware + role enforcement (MANAGER | OPERATOR)
-- [ ] User CRUD API (register, login, list users)
-- [x] Warehouse CRUD API (create, read, update, delete)
-- [ ] SKU CRUD API (create, read, update, delete, with caching)
+### Phase 2: Stock Movement Core (12 hours)
 - [ ] Stock receipt API (POST /movements/receipt)
 - [ ] Stock adjustment API (POST /movements/adjustment)
 - [ ] Stock transfer API (POST /movements/transfer)
 - [ ] Atomic transfer transaction with row-level SELECT...FOR UPDATE locking
 - [ ] InventoryStock auto-update on movements
+- [ ] 50-concurrent-transfer integration test
 
 ### Phase 3: Queues & Alerts (10 hours)
 - [ ] BullMQ setup (alerts, imports, po-fulfillment queues)
@@ -31,8 +31,7 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [ ] CSV import worker
 
 ### Phase 4: Caching & Performance (8 hours)
-- [ ] Redis caching and invalidation
-- [ ] Hot SKU lookups cached by code
+- [ ] Redis caching and invalidation (SKU cache in Phase 1 SKU CRUD)
 - [ ] Dashboard summary cache with TTL
 - [ ] Seed dataset: 5 warehouses, 10,000 SKUs, 500,000 movements
 - [ ] Query optimization with EXPLAIN ANALYZE
@@ -47,7 +46,7 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 ### Phase 6: Testing & Docs (8 hours)
 - [ ] Unit tests with Vitest
 - [ ] Integration tests (real DB + concurrency tests)
-- [ ] E2E tests with Playwright (50 concurrent transfers test)
+- [ ] E2E tests with Playwright
 - [ ] README.md with setup and architecture
 - [ ] ARCHITECTURE.md with decisions
 - [ ] 5-7 minute Loom walkthrough
@@ -56,83 +55,56 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 
 | Branch | Purpose | Status | Key Checks |
 | --- | --- | --- | --- |
-| `phase-1-backend-foundation` | Establish reusable Prisma/Redis clients and real infrastructure health checks. | Ready for review | TypeScript check passed; `/health` smoke test returned DB + Redis connected. |
-| `feature/warehouse-crud` | Implement warehouse CRUD endpoints and server-side role checks. | Started | Based on phase-1-backend-foundation; branch created after pull. |
+| `phase-1-backend-foundation` | Prisma/Redis clients and `/health` | Merged into feature branch history | TypeScript + health smoke test passed |
+| `feature/warehouse-crud` | Warehouse CRUD + JWT auth + role guards | Auth committed; push pending | tsc pass; manual RBAC test pending |
 
 ## Required Deliverables
 
-- [ ] Clean Git history with small focused commits and meaningful messages
-- [ ] `README.md` with setup, app/worker/test commands, architecture decisions, and "what I would do differently"
-- [ ] `ARCHITECTURE.md` covering data model, transaction strategy, queue topology, cache strategy, and optional diagram
-- [ ] Seed script for 5 warehouses, 10,000 SKUs, and 500,000 movements
+- [x] Clean Git history with small focused commits (auth slice)
+- [ ] `README.md` with setup, app/worker/test commands, architecture decisions
+- [ ] `ARCHITECTURE.md` covering data model, transaction strategy, queue topology, cache strategy
+- [ ] Seed script for 5 warehouses, 10,000 SKUs, and 500,000 movements (dev user seed only so far)
 - [ ] Playwright HTML test report committed or uploaded as a CI artifact
-- [ ] 5-7 minute Loom showing the app, concurrent-transfer test, and one key design decision
+- [ ] 5-7 minute Loom walkthrough
 
 ## Assignment-Critical Backend Work
 
-- [ ] Server-side role checks on every mutating route
+- [x] Server-side role checks on warehouse mutating routes
+- [ ] Server-side role checks on SKU routes (pending SKU CRUD)
 - [ ] SKU CRUD
-- [ ] Warehouse CRUD
+- [x] Warehouse CRUD
 - [ ] Immutable stock movement ledger
 - [ ] Inventory snapshot updates
 - [ ] Transfers respect reserved stock
 - [ ] Transfers are atomic
-- [ ] 50-concurrent-transfer integration test proves stock never goes negative
+- [ ] 50-concurrent-transfer integration test
 - [ ] Low-stock alert jobs are asynchronous and deduplicated
 - [ ] Purchase order state transitions are validated server-side
 - [ ] CSV imports run in a background worker with per-row status
 - [ ] Redis hot SKU cache with explicit invalidation
 - [ ] Dashboard summary cache with TTL and movement invalidation
-- [ ] Movement history and dashboard meet the 250 ms p95 target on seeded data
-
-## Suggested Focused Commits
-
-- `chore: add shared prisma and redis clients`
-- `feat: add infrastructure health checks`
-- `docs: track assignment deliverables`
-- `feat: add warehouse crud api`
-- `test: cover warehouse crud`
 
 ## Verification Log
 
 - [x] Backend TypeScript check: `pnpm --dir apps/backend exec tsc --noEmit`
-- [x] `/health` smoke test with Fastify `app.inject()` returned `200` and `{"status":"ok","database":"connected","redis":"connected"}`
-- [x] Git remote configured: `https://github.com/KushGuptaHT/inventoryhub.git`
-- [x] **NEW (May 22, 2026 09:15 UTC)**: Docker containers running (PostgreSQL 16, Redis 7)
-- [x] **NEW (May 22, 2026 19:41 UTC)**: Prisma schema with 12 models created
-- [x] **NEW (May 22, 2026 19:41 UTC)**: Migration executed: `20260522114337_init`
-- [x] **NEW (May 22, 2026 19:41 UTC)**: All 12 tables created in PostgreSQL
-- [x] **NEW (May 22, 2026 19:41 UTC)**: Prisma Client v7.8.0 generated
-- [x] **NEW (May 22, 2026 19:41 UTC)**: PrismaPg adapter configured for PostgreSQL
-- [x] **NEXT**: Commit changes and move to Phase 2 APIs
+- [x] `/health` smoke test returned DB + Redis connected
+- [x] Git remote: `https://github.com/KushGuptaHT/inventoryhub.git`
+- [x] Docker: PostgreSQL 16 + Redis 7 running locally
+- [x] Prisma schema + migration `20260522114337_init`
+- [ ] **Auth RBAC manual test**: Operator POST /warehouses → 403; Manager → 201
+- [ ] **Dev seed**: `pnpm --dir apps/backend db:seed`
 
 ## Current Git Status
 
 ```
-Branch: feature/warehouse-crud (based on phase-1-backend-foundation)
-Commits: 9 total
-Latest: 021a139 - docs: add phase 1 api plan for backend feature work
-Status: feature branch created after pulling latest foundation work
+Branch: feature/warehouse-crud
+Latest auth commits: (see git log)
+Next: push branch, then implement SKU CRUD to close Phase 1
 ```
 
-## What is GitLens?
+## Dev test credentials (local only)
 
-**GitLens** is a VS Code extension that shows:
-- Git blame (who changed each line, when)
-- Commit history (hover over code to see commit details)
-- Repository insights
-- Branch tracking
-
-**You're NOT getting it because:**
-- It's an optional VS Code extension
-- You may not have it installed, OR
-- If installed, you need to open a file with code in it
-- It integrates with your git repository
-
-**To enable it in VS Code:**
-1. Open VS Code
-2. Go to Extensions (Ctrl+Shift+X)
-3. Search "GitLens"
-4. Click Install (published by eamodio)
-5. Reload VS Code
-6. Open any file in the project → You'll see git blame on the right side
+| Email | Password | Role |
+| --- | --- | --- |
+| manager@inventoryhub.test | Password123! | MANAGER |
+| operator@inventoryhub.test | Password123! | OPERATOR |
