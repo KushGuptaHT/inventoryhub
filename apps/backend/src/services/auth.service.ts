@@ -40,7 +40,15 @@ const toPublicUser = (user: {
   if (!isUserRole(user.role)) {
     throw new Error(`Invalid role stored for user ${user.id}`);
   }
-  return { ...user, role: user.role as UserRole };
+  // Pick fields explicitly — never spread DB row (login row includes passwordHash).
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+  };
 };
 
 /** Thrown for expected failures (wrong password, duplicate email) — routes map to HTTP status. */
