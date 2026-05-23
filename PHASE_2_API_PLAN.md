@@ -1,6 +1,6 @@
 # PHASE 2: Stock Movements & Transactions
 
-**Status:** Complete (pending commit)  
+**Status:** Complete  
 **Branch:** `feature/stock-movements` (from `main`)  
 **Duration:** ~12 hours  
 **Focus:** Data integrity under concurrency — the heart of the assignment
