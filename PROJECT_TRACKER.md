@@ -2,7 +2,7 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase: Phase 1 — Complete ✅
+## Current Phase: Phase 2 — Complete ✅
 
 ### Phase 1: Foundation (10 hours)
 - [x] Infrastructure setup: Fastify, Docker, PostgreSQL, Redis, Prisma schema, migration, generated Prisma client
@@ -15,13 +15,13 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [x] SKU CRUD API with Redis cache on `GET /skus/code/:code`
 - [x] Dev user seed (manager + operator test accounts)
 
-### Phase 2: Stock Movement Core (12 hours) — NEXT
-- [ ] Stock receipt API (POST /movements/receipt)
-- [ ] Stock adjustment API (POST /movements/adjustment)
-- [ ] Stock transfer API (POST /movements/transfer)
-- [ ] Atomic transfer transaction with row-level SELECT...FOR UPDATE locking
-- [ ] InventoryStock auto-update on movements
-- [ ] 50-concurrent-transfer integration test
+### Phase 2: Stock Movement Core (12 hours) — COMPLETE
+- [x] Stock receipt API (POST /movements/receipt)
+- [x] Stock adjustment API (POST /movements/adjustment)
+- [x] Stock transfer API (POST /movements/transfer)
+- [x] Atomic transfer transaction with row-level SELECT...FOR UPDATE locking
+- [x] InventoryStock auto-update on movements
+- [x] 50-concurrent-transfer integration test (`pnpm --dir apps/backend test:int`)
 
 ### Phase 3: Queues & Alerts (10 hours)
 - [ ] BullMQ setup (alerts, imports, po-fulfillment queues)
@@ -63,11 +63,11 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [x] SKU CRUD
 - [x] Warehouse CRUD
 - [x] Redis hot SKU cache with explicit invalidation
-- [ ] Immutable stock movement ledger
-- [ ] Inventory snapshot updates
-- [ ] Transfers respect reserved stock
-- [ ] Transfers are atomic
-- [ ] 50-concurrent-transfer integration test
+- [x] Immutable stock movement ledger
+- [x] Inventory snapshot updates
+- [x] Transfers respect reserved stock
+- [x] Transfers are atomic
+- [x] 50-concurrent-transfer integration test (`pnpm --dir apps/backend test:int`)
 - [ ] Low-stock alert jobs are asynchronous and deduplicated
 - [ ] Purchase order state transitions are validated server-side
 - [ ] CSV imports run in a background worker with per-row status
