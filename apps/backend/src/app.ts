@@ -15,6 +15,7 @@ import { prisma } from "./lib/prisma";
 import { redis } from "./lib/redis";
 import { jwtPlugin } from "./plugins/jwt";
 import { authRoutes } from "./routes/auth";
+import { skuRoutes } from "./routes/skus";
 import { warehouseRoutes } from "./routes/warehouses";
 
 export const buildApp = async () => {
@@ -43,6 +44,7 @@ export const buildApp = async () => {
   );
 
   await app.register(warehouseRoutes, { prefix: "/warehouses" });
+  await app.register(skuRoutes, { prefix: "/skus" });
 
   const healthCheckTimeoutMs = 2_000;
 
