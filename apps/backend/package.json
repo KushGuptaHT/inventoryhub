@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --import tsx --test tests/*.integration.test.ts",
+    "test:int": "node --import tsx --test tests/*.integration.test.ts",
     "dev": "tsx watch src/server.ts",
     "db:seed": "prisma db seed"
   },
