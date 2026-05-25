@@ -14,6 +14,7 @@ import {
   incrementStock,
   lockInventoryRowForUpdate,
 } from "../lib/inventory-stock";
+import { invalidateDashboardSummaryCacheSafe } from "../lib/dashboard-cache";
 import { prisma } from "../lib/prisma";
 import type {
   PurchaseOrderFromAlertInput,
@@ -366,6 +367,7 @@ export const purchaseOrderService = {
       return po;
     });
 
+    await invalidateDashboardSummaryCacheSafe();
     return toPurchaseOrderView(updated);
   },
 };

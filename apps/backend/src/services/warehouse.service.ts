@@ -1,3 +1,13 @@
+// ============================================================================
+// WAREHOUSE SERVICE
+// ============================================================================
+// WHAT:  CRUD operations for warehouse master data.
+// WHY:   Inventory, dashboard summaries, and transfers depend on active warehouses.
+// SKIP:  Dashboard cache could keep stale active warehouse counts after edits.
+// HOW:   Prisma mutations + dashboard cache invalidation after successful writes.
+// ============================================================================
+
+import { invalidateDashboardSummaryCacheSafe } from "../lib/dashboard-cache";
 import { prisma } from "../lib/prisma";
 import type {
   WarehouseCreateInput,
@@ -7,9 +17,11 @@ import type {
 
 export const warehouseService = {
   create: async (data: WarehouseCreateInput) => {
-    return prisma.warehouse.create({
+    const warehouse = await prisma.warehouse.create({
       data,
     });
+    await invalidateDashboardSummaryCacheSafe();
+    return warehouse;
   },
 
   findMany: async (query: WarehouseListQuery) => {
@@ -29,16 +41,20 @@ export const warehouseService = {
   },
 
   update: async (id: string, data: WarehouseUpdateInput) => {
-    return prisma.warehouse.update({
+    const warehouse = await prisma.warehouse.update({
       where: { id },
       data,
     });
+    await invalidateDashboardSummaryCacheSafe();
+    return warehouse;
   },
 
   softDelete: async (id: string) => {
-    return prisma.warehouse.update({
+    const warehouse = await prisma.warehouse.update({
       where: { id },
       data: { isActive: false },
     });
+    await invalidateDashboardSummaryCacheSafe();
+    return warehouse;
   },
 };

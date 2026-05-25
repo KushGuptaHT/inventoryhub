@@ -219,6 +219,7 @@ model StockMovement {
   destination Warehouse  @relation("StockMovementTo", fields: [toWarehouse], references: [id])
 
   @@index([skuId, createdAt]) // For movement history queries
+  @@index([createdAt]) // Phase 4: dashboard recent-movement counts/order by date
   @@index([toWarehouse])
   @@index([fromWarehouse])
   @@index([type])
