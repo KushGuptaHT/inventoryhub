@@ -15,7 +15,8 @@
 //   3. route handler   → Zod + movementService
 // ============================================================================
 
-import { FastifyPluginAsync } from "fastify";
+import { FastifyPluginAsync, FastifyRequest } from "fastify";
+import { enqueueLowStockCheck } from "../jobs/alert.jobs";
 import { authenticate } from "../middleware/authenticate";
 import { requireRole } from "../middleware/requireRole";
 import {
@@ -30,6 +31,15 @@ import {
 import { UserRole } from "../types/auth.types";
 
 const stockMovementRoles = [UserRole.MANAGER, UserRole.OPERATOR] as const;
+
+const scheduleLowStockCheck = (
+  request: FastifyRequest,
+  data: { skuId: string; warehouseId: string; movementId: string },
+) => {
+  void enqueueLowStockCheck(data).catch((error: unknown) => {
+    request.log.error({ error }, "Failed to enqueue low-stock check");
+  });
+};
 
 export const movementRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook("preHandler", authenticate);
@@ -48,6 +58,11 @@ export const movementRoutes: FastifyPluginAsync = async (fastify) => {
           parsed.data,
           request.user.sub,
         );
+        scheduleLowStockCheck(request, {
+          skuId: parsed.data.skuId,
+          warehouseId: parsed.data.warehouseId,
+          movementId: result.movement.id,
+        });
         return reply.status(201).send(result);
       } catch (error: unknown) {
         if (error instanceof MovementValidationError) {
@@ -74,6 +89,11 @@ export const movementRoutes: FastifyPluginAsync = async (fastify) => {
           parsed.data,
           request.user.sub,
         );
+        scheduleLowStockCheck(request, {
+          skuId: parsed.data.skuId,
+          warehouseId: parsed.data.warehouseId,
+          movementId: result.movement.id,
+        });
         return reply.status(201).send(result);
       } catch (error: unknown) {
         if (error instanceof MovementValidationError) {
@@ -100,6 +120,16 @@ export const movementRoutes: FastifyPluginAsync = async (fastify) => {
           parsed.data,
           request.user.sub,
         );
+        scheduleLowStockCheck(request, {
+          skuId: parsed.data.skuId,
+          warehouseId: parsed.data.fromWarehouseId,
+          movementId: result.movement.id,
+        });
+        scheduleLowStockCheck(request, {
+          skuId: parsed.data.skuId,
+          warehouseId: parsed.data.toWarehouseId,
+          movementId: result.movement.id,
+        });
         return reply.status(201).send(result);
       } catch (error: unknown) {
         if (error instanceof MovementValidationError) {
