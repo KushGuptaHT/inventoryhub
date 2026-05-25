@@ -269,8 +269,9 @@ model Alert {
   auditLogs     AlertAuditLog[]
   purchaseOrder PurchaseOrder? // One PO per alert (Req 3.5)
 
-  // Deduplication: only one open alert per (SKU, warehouse)
-  @@unique([skuId, warehouseId], name: "unique_open_alert")
+  // Deduplication lives in a PostgreSQL partial unique index:
+  // unique (skuId, warehouseId) WHERE status = 'OPEN'.
+  // WHY: resolved alerts must stay in history while allowing a future open alert.
   @@index([status])
   @@index([createdAt])
 }
@@ -356,7 +357,7 @@ model PurchaseOrder {
   alert     Alert                  @relation(fields: [alertId], references: [id], onDelete: Cascade)
   warehouse Warehouse              @relation(fields: [warehouseId], references: [id])
   lineItems PurchaseOrderLine[]
-  auditLog  PurchaseOrderAuditLog?
+  auditLogs PurchaseOrderAuditLog[]
 
   @@index([status])
   @@index([createdAt])
@@ -404,7 +405,7 @@ model PurchaseOrderLine {
 // ============================================================================
 model PurchaseOrderAuditLog {
   id             String   @id @default(cuid())
-  poId           String   @unique
+  poId           String
   previousStatus String
   newStatus      String
   changedBy      String // User ID
@@ -414,6 +415,7 @@ model PurchaseOrderAuditLog {
   // Relationships
   purchaseOrder PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
 
+  @@index([poId, createdAt])
   @@index([createdAt])
 }
 
