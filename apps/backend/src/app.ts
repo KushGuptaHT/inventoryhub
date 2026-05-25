@@ -14,8 +14,11 @@ import Fastify from "fastify";
 import { prisma } from "./lib/prisma";
 import { redis } from "./lib/redis";
 import { jwtPlugin } from "./plugins/jwt";
+import { alertRoutes } from "./routes/alerts";
 import { movementRoutes } from "./routes/movements";
 import { authRoutes } from "./routes/auth";
+import { importRoutes } from "./routes/imports";
+import { purchaseOrderRoutes } from "./routes/purchase-orders";
 import { skuRoutes } from "./routes/skus";
 import { warehouseRoutes } from "./routes/warehouses";
 
@@ -47,6 +50,9 @@ export const buildApp = async () => {
   await app.register(warehouseRoutes, { prefix: "/warehouses" });
   await app.register(skuRoutes, { prefix: "/skus" });
   await app.register(movementRoutes, { prefix: "/movements" });
+  await app.register(alertRoutes, { prefix: "/alerts" });
+  await app.register(purchaseOrderRoutes, { prefix: "/purchase-orders" });
+  await app.register(importRoutes, { prefix: "/imports" });
 
   const healthCheckTimeoutMs = 2_000;
 
