@@ -8,6 +8,7 @@
 // ============================================================================
 
 import { Prisma } from "../generated/prisma";
+import { invalidateDashboardSummaryCacheSafe } from "../lib/dashboard-cache";
 import { prisma } from "../lib/prisma";
 import {
   getCachedSku,
@@ -93,6 +94,7 @@ export const skuService = {
           preferredSupplier: data.preferredSupplier,
         },
       });
+      await invalidateDashboardSummaryCacheSafe();
       return serializeSku(sku);
     } catch (error: unknown) {
       handleUniqueViolation(error);
@@ -172,6 +174,7 @@ export const skuService = {
       if (data.code && normalizeCode(data.code) !== existing.code) {
         await invalidateSkuCache(data.code);
       }
+      await invalidateDashboardSummaryCacheSafe();
 
       return serializeSku(sku);
     } catch (error: unknown) {
@@ -192,5 +195,6 @@ export const skuService = {
     });
 
     await invalidateSkuCache(existing.code);
+    await invalidateDashboardSummaryCacheSafe();
   },
 };

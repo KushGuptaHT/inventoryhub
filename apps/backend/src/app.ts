@@ -12,9 +12,11 @@ import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import Fastify from "fastify";
 import { prisma } from "./lib/prisma";
+import { closeQueues } from "./lib/queues";
 import { redis } from "./lib/redis";
 import { jwtPlugin } from "./plugins/jwt";
 import { alertRoutes } from "./routes/alerts";
+import { dashboardRoutes } from "./routes/dashboard";
 import { movementRoutes } from "./routes/movements";
 import { authRoutes } from "./routes/auth";
 import { importRoutes } from "./routes/imports";
@@ -53,6 +55,7 @@ export const buildApp = async () => {
   await app.register(alertRoutes, { prefix: "/alerts" });
   await app.register(purchaseOrderRoutes, { prefix: "/purchase-orders" });
   await app.register(importRoutes, { prefix: "/imports" });
+  await app.register(dashboardRoutes, { prefix: "/dashboard" });
 
   const healthCheckTimeoutMs = 2_000;
 
@@ -94,6 +97,7 @@ export const buildApp = async () => {
   });
 
   app.addHook("onClose", async () => {
+    await closeQueues();
     await prisma.$disconnect();
     redis.disconnect();
   });

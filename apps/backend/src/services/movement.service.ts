@@ -22,6 +22,7 @@ import {
   MovementValidationError,
   toInventoryView,
 } from "../lib/inventory-stock";
+import { invalidateDashboardSummaryCacheSafe } from "../lib/dashboard-cache";
 import type {
   AdjustmentInput,
   ReceiptInput,
@@ -62,7 +63,7 @@ export const movementService = {
   ): Promise<MovementResult> => {
     await assertSkuAndWarehouseActive(input.skuId, input.warehouseId);
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       await ensureInventoryRow(tx, input.skuId, input.warehouseId);
       const current = await lockInventoryRowForUpdate(
         tx,
@@ -95,6 +96,9 @@ export const movementService = {
         inventory: toInventoryView(updated),
       };
     });
+
+    await invalidateDashboardSummaryCacheSafe();
+    return result;
   },
 
   adjustment: async (
@@ -103,7 +107,7 @@ export const movementService = {
   ): Promise<MovementResult> => {
     await assertSkuAndWarehouseActive(input.skuId, input.warehouseId);
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       await ensureInventoryRow(tx, input.skuId, input.warehouseId);
       const current = await lockInventoryRowForUpdate(
         tx,
@@ -143,6 +147,9 @@ export const movementService = {
         inventory: toInventoryView(updated),
       };
     });
+
+    await invalidateDashboardSummaryCacheSafe();
+    return result;
   },
 
   transfer: async (
@@ -159,7 +166,7 @@ export const movementService = {
     await assertSkuAndWarehouseActive(input.skuId, input.fromWarehouseId);
     await assertSkuAndWarehouseActive(input.skuId, input.toWarehouseId);
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       // Ensure both rows exist, then lock source first (hot path for concurrency test).
       await ensureInventoryRow(tx, input.skuId, input.fromWarehouseId);
       await ensureInventoryRow(tx, input.skuId, input.toWarehouseId);
@@ -212,5 +219,8 @@ export const movementService = {
         destinationInventory: toInventoryView(updatedDest),
       };
     });
+
+    await invalidateDashboardSummaryCacheSafe();
+    return result;
   },
 };

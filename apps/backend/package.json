@@ -9,7 +9,9 @@
     "dev": "tsx watch src/server.ts",
     "worker": "tsx src/workers/index.ts",
     "dev:worker": "tsx watch src/workers/index.ts",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "db:seed:perf": "tsx prisma/seed-performance.ts",
+    "perf:explain": "tsx src/scripts/explain-performance.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

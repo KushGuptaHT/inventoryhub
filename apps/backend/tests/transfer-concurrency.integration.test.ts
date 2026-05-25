@@ -12,6 +12,7 @@ import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
 import { Prisma } from "../src/generated/prisma";
 import { prisma } from "../src/lib/prisma";
+import { redis } from "../src/lib/redis";
 import {
   MovementValidationError,
   movementService,
@@ -87,6 +88,7 @@ describe("transfer concurrency (real Postgres)", () => {
     });
     await prisma.user.deleteMany({ where: { id: userId } });
     await prisma.$disconnect();
+    redis.disconnect();
   });
 
   it("50 concurrent transfers of 1 unit each — no negative stock", async () => {
