@@ -2,7 +2,7 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase: Phase 2 — Complete ✅
+## Current Phase: Phase 3 — Complete ✅
 
 ### Phase 1: Foundation (10 hours)
 - [x] Infrastructure setup: Fastify, Docker, PostgreSQL, Redis, Prisma schema, migration, generated Prisma client
@@ -23,12 +23,12 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [x] InventoryStock auto-update on movements
 - [x] 50-concurrent-transfer integration test (`pnpm --dir apps/backend test:int`)
 
-### Phase 3: Queues & Alerts (10 hours)
-- [ ] BullMQ setup (alerts, imports, po-fulfillment queues)
-- [ ] Alert creation worker (async, deduplicated)
-- [ ] Low-stock alert trigger logic
-- [ ] PO fulfillment worker
-- [ ] CSV import worker
+### Phase 3: Queues & Alerts (10 hours) — COMPLETE
+- [x] BullMQ setup (alerts, imports, po-fulfillment queues)
+- [x] Alert creation worker (async, deduplicated)
+- [x] Low-stock alert trigger logic
+- [x] PO fulfillment worker scaffold
+- [x] CSV import worker scaffold
 
 ### Phase 4: Caching & Performance (8 hours)
 - [x] Hot SKU cache (`sku:{CODE}`, TTL 1h, invalidate on update/delete)
@@ -68,15 +68,18 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [x] Transfers respect reserved stock
 - [x] Transfers are atomic
 - [x] 50-concurrent-transfer integration test (`pnpm --dir apps/backend test:int`)
-- [ ] Low-stock alert jobs are asynchronous and deduplicated
-- [ ] Purchase order state transitions are validated server-side
-- [ ] CSV imports run in a background worker with per-row status
+- [x] Low-stock alert jobs are asynchronous and deduplicated
+- [x] Purchase order state transitions are validated server-side
+- [x] CSV imports run in a background worker with per-row status
 - [ ] Dashboard summary cache with TTL and movement invalidation
 
 ## Verification Log
 
 - [x] Backend TypeScript check: `pnpm --dir apps/backend exec tsc --noEmit`
 - [x] Docker: PostgreSQL 16 + Redis 7
+- [x] Worker smoke test: `pnpm --dir apps/backend worker`
+- [x] Phase 2 transfer integration test still passes after Phase 3 changes
+- [x] Phase 3 manual API flow: alerts, PO receive, and import partial failure
 - [ ] **Auth RBAC**: Operator POST /warehouses → 403; Manager → 201
 - [ ] **SKU RBAC**: Operator POST /skus → 403; Manager → 201
 - [ ] **SKU cache**: GET /skus/code/:code twice — second read from Redis
