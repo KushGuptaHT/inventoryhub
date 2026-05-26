@@ -126,6 +126,23 @@ export const skuService = {
     return skus.map(serializeSku);
   },
 
+  count: async (query: SkuListQuery): Promise<number> => {
+    const search = query.search?.trim();
+    return prisma.sKU.count({
+      where: {
+        ...(query.includeInactive ? {} : { isActive: true }),
+        ...(search
+          ? {
+              OR: [
+                { code: { contains: search, mode: "insensitive" } },
+                { name: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      },
+    });
+  },
+
   findById: async (id: string): Promise<SkuResponse | null> => {
     const sku = await prisma.sKU.findUnique({ where: { id } });
     return sku ? serializeSku(sku) : null;

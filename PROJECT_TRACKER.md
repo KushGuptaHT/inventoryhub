@@ -2,7 +2,7 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase: Phase 4 — Complete ✅
+## Current Phase: Phase 5 — Complete ✅
 
 ### Phase 1: Foundation (10 hours)
 - [x] Infrastructure setup: Fastify, Docker, PostgreSQL, Redis, Prisma schema, migration, generated Prisma client
@@ -37,10 +37,11 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [x] Query optimization with EXPLAIN ANALYZE
 
 ### Phase 5: Frontend Integration (12 hours)
-- [ ] TanStack Query integration
-- [ ] TanStack Table for movement history
+- [x] TanStack Query integration
+- [x] TanStack Table for movement history
 - [ ] Optimistic updates for UX
-- [ ] Dashboard UI
+- [x] Dashboard UI
+- [x] Dashboard warehouse filter and list filters
 - [ ] Forecasting view
 
 ### Phase 6: Testing & Docs (8 hours)
@@ -84,6 +85,9 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [x] Phase 4 movement invalidation check: `MISS → HIT → MISS`
 - [x] Phase 4 performance seed: 5 warehouses, 10k SKUs, 500k movements
 - [x] Phase 4 EXPLAIN: added `StockMovement_createdAt_idx` after seeded measurement
+- [x] Phase 5 frontend build: `pnpm --dir apps/frontend build`
+- [x] Phase 5 frontend lint: `pnpm --dir apps/frontend lint`
+- [x] Phase 5 backend movement history endpoint typecheck
 - [ ] **Auth RBAC**: Operator POST /warehouses → 403; Manager → 201
 - [ ] **SKU RBAC**: Operator POST /skus → 403; Manager → 201
 - [ ] **SKU cache**: GET /skus/code/:code twice — second read from Redis

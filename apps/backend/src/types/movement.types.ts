@@ -43,6 +43,32 @@ export type TransferResult = {
   destinationInventory: MovementResult["inventory"];
 };
 
+export type MovementHistoryItem = MovementResult["movement"] & {
+  sku: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  sourceWarehouse: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
+  destinationWarehouse: {
+    id: string;
+    code: string;
+    name: string;
+  };
+};
+
+export type MovementHistoryResponse = {
+  items: MovementHistoryItem[];
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+};
+
 type StockMovementRow = {
   id: string;
   type: string;

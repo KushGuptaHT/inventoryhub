@@ -54,11 +54,16 @@ export const warehouseRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const query = queryResult.data;
-    const warehouses = await warehouseService.findMany(query);
+    const [warehouses, total] = await Promise.all([
+      warehouseService.findMany(query),
+      warehouseService.count(query),
+    ]);
     return {
       data: warehouses,
       page: query.page,
       perPage: query.perPage,
+      total,
+      totalPages: Math.ceil(total / query.perPage),
     };
   });
 
