@@ -32,6 +32,8 @@ export const buildApp = async () => {
   // WHY CORS: browser on localhost:5173 can call API on :4000 (different ports = different origins)
   await app.register(cors, {
     origin: true,
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   });
 
   // WHY before routes: warehouse routes call request.jwtVerify()

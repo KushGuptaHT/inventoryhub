@@ -34,6 +34,12 @@ export const warehouseService = {
     });
   },
 
+  count: async (query: WarehouseListQuery) => {
+    return prisma.warehouse.count({
+      where: query.includeInactive ? undefined : { isActive: true },
+    });
+  },
+
   findById: async (id: string) => {
     return prisma.warehouse.findUnique({
       where: { id },

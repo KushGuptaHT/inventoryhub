@@ -21,6 +21,7 @@ import { authenticate } from "../middleware/authenticate";
 import { requireRole } from "../middleware/requireRole";
 import {
   adjustmentSchema,
+  movementListQuerySchema,
   receiptSchema,
   transferSchema,
 } from "../schemas/movement.schemas";
@@ -43,6 +44,19 @@ const scheduleLowStockCheck = (
 
 export const movementRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook("preHandler", authenticate);
+
+  fastify.get(
+    "/",
+    { preHandler: [requireRole(...stockMovementRoles)] },
+    async (request, reply) => {
+      const parsed = movementListQuerySchema.safeParse(request.query);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+
+      return movementService.findMany(parsed.data);
+    },
+  );
 
   fastify.post(
     "/receipt",

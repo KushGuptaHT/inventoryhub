@@ -10,6 +10,15 @@
 import { z } from "zod";
 
 const positiveInt = z.coerce.number().int().positive();
+const paginationInt = z.coerce.number().int().positive();
+
+export const movementListQuerySchema = z.object({
+  page: paginationInt.default(1),
+  perPage: paginationInt.max(100).default(25),
+  type: z.enum(["RECEIPT", "ADJUSTMENT", "TRANSFER"]).optional(),
+  skuId: z.string().min(1).optional(),
+  warehouseId: z.string().min(1).optional(),
+});
 
 export const receiptSchema = z.object({
   skuId: z.string().min(1, "skuId is required"),
@@ -40,3 +49,4 @@ export const transferSchema = z.object({
 export type ReceiptInput = z.infer<typeof receiptSchema>;
 export type AdjustmentInput = z.infer<typeof adjustmentSchema>;
 export type TransferInput = z.infer<typeof transferSchema>;
+export type MovementListQuery = z.infer<typeof movementListQuerySchema>;

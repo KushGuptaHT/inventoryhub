@@ -25,11 +25,13 @@ import {
 import { invalidateDashboardSummaryCacheSafe } from "../lib/dashboard-cache";
 import type {
   AdjustmentInput,
+  MovementListQuery,
   ReceiptInput,
   TransferInput,
 } from "../schemas/movement.schemas";
 import {
   MovementType,
+  type MovementHistoryResponse,
   type MovementResult,
   type TransferResult,
   toMovementView,
@@ -57,6 +59,52 @@ const assertNonNegativeStock = (
 };
 
 export const movementService = {
+  findMany: async (
+    query: MovementListQuery,
+  ): Promise<MovementHistoryResponse> => {
+    const skip = (query.page - 1) * query.perPage;
+    const where = {
+      ...(query.type ? { type: query.type } : {}),
+      ...(query.skuId ? { skuId: query.skuId } : {}),
+      ...(query.warehouseId
+        ? {
+            OR: [
+              { fromWarehouse: query.warehouseId },
+              { toWarehouse: query.warehouseId },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await prisma.$transaction([
+      prisma.stockMovement.findMany({
+        where,
+        include: {
+          sku: { select: { id: true, code: true, name: true } },
+          source: { select: { id: true, code: true, name: true } },
+          destination: { select: { id: true, code: true, name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: query.perPage,
+      }),
+      prisma.stockMovement.count({ where }),
+    ]);
+
+    return {
+      items: items.map((movement) => ({
+        ...toMovementView(movement),
+        sku: movement.sku,
+        sourceWarehouse: movement.source,
+        destinationWarehouse: movement.destination,
+      })),
+      page: query.page,
+      perPage: query.perPage,
+      total,
+      totalPages: Math.ceil(total / query.perPage),
+    };
+  },
+
   receipt: async (
     input: ReceiptInput,
     userId: string,
