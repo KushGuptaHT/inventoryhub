@@ -7,6 +7,7 @@ const navItems = [
   { to: '/warehouses', label: 'Warehouses' },
   { to: '/skus', label: 'SKUs' },
   { to: '/movements', label: 'Movements' },
+  { to: '/forecast', label: 'Forecast' },
   { to: '/alerts', label: 'Alerts' },
   { to: '/purchase-orders', label: 'Purchase Orders' },
   { to: '/imports', label: 'Imports' },

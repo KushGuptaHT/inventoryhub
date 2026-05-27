@@ -40,8 +40,28 @@ const log = (message: string) => {
 
 async function cleanPerfData() {
   log("Cleaning prior PERF_* data");
+  const perfWarehouses = await prisma.warehouse.findMany({
+    where: { code: { startsWith: `${PERF_PREFIX}-WH-` } },
+    select: { id: true },
+  });
+  const perfWarehouseIds = perfWarehouses.map((warehouse) => warehouse.id);
+
+  // Delete movements referencing PERF warehouses first (FK constraints).
+  // We also delete PERF-SKU movements in case older seeds only used SKU filters.
   await prisma.stockMovement.deleteMany({
-    where: { sku: { code: { startsWith: `${PERF_PREFIX}-SKU-` } } },
+    where: {
+      OR: [
+        { sku: { code: { startsWith: `${PERF_PREFIX}-SKU-` } } },
+        perfWarehouseIds.length > 0
+          ? {
+              OR: [
+                { toWarehouse: { in: perfWarehouseIds } },
+                { fromWarehouse: { in: perfWarehouseIds } },
+              ],
+            }
+          : undefined,
+      ].filter(Boolean) as Prisma.StockMovementWhereInput[],
+    },
   });
   await prisma.inventoryStock.deleteMany({
     where: { sku: { code: { startsWith: `${PERF_PREFIX}-SKU-` } } },
@@ -131,21 +151,57 @@ async function main() {
     );
   }
 
-  log(`Creating ${MOVEMENT_COUNT} stock movements`);
+  log(`Creating ${MOVEMENT_COUNT} stock movements (receipt / transfer / negative adjustment)`);
   for (let offset = 0; offset < MOVEMENT_COUNT; offset += CHUNK_SIZE) {
     const movements = Array.from({ length: Math.min(CHUNK_SIZE, MOVEMENT_COUNT - offset) }, (_value, index) => {
       const movementIndex = offset + index;
       const sku = skus[movementIndex % skus.length];
       const warehouse = warehouses[movementIndex % warehouses.length];
+      const quantity = 1 + (movementIndex % 20);
+      const createdAt = new Date(Date.now() - (movementIndex % 30) * 86_400_000);
+      const kind = movementIndex % 3;
+
+      if (kind === 1) {
+        const sourceWarehouse =
+          warehouses[(movementIndex + 1) % warehouses.length];
+        return {
+          type: "TRANSFER",
+          skuId: sku.id,
+          quantity,
+          quantityDelta: null,
+          fromWarehouse: sourceWarehouse.id,
+          toWarehouse: warehouse.id,
+          notes: `${PERF_PREFIX} transfer ${movementIndex + 1}`,
+          createdByUserId: user.id,
+          createdAt,
+        };
+      }
+
+      if (kind === 2) {
+        const negativeDelta = -(1 + (movementIndex % 8));
+        return {
+          type: "ADJUSTMENT",
+          skuId: sku.id,
+          quantity: Math.abs(negativeDelta),
+          quantityDelta: negativeDelta,
+          fromWarehouse: null,
+          toWarehouse: warehouse.id,
+          notes: `${PERF_PREFIX} shrinkage ${movementIndex + 1}`,
+          createdByUserId: user.id,
+          createdAt,
+        };
+      }
+
       return {
         type: "RECEIPT",
         skuId: sku.id,
-        quantity: 1 + (movementIndex % 20),
+        quantity,
+        quantityDelta: null,
         fromWarehouse: null,
         toWarehouse: warehouse.id,
-        notes: `${PERF_PREFIX} movement ${movementIndex + 1}`,
+        notes: `${PERF_PREFIX} receipt ${movementIndex + 1}`,
         createdByUserId: user.id,
-        createdAt: new Date(Date.now() - (movementIndex % 30) * 86_400_000),
+        createdAt,
       };
     });
 

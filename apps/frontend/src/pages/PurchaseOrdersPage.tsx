@@ -3,6 +3,10 @@ import { useState } from 'react'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
 import { getStoredAuth } from '../lib/auth'
+import {
+  applyOptimisticListUpdate,
+  rollbackOptimisticListUpdate,
+} from '../lib/optimistic-list'
 import { queryKeys } from '../lib/query-keys'
 import {
   UserRole,
@@ -15,8 +19,9 @@ export function PurchaseOrdersPage() {
   const auth = getStoredAuth()
   const canManage = auth?.user.role === UserRole.MANAGER
   const [status, setStatus] = useState('')
+  const ordersQueryKey = [...queryKeys.purchaseOrders, status] as const
   const orders = useQuery({
-    queryKey: [...queryKeys.purchaseOrders, status],
+    queryKey: ordersQueryKey,
     queryFn: () =>
       apiRequest<ListResponse<PurchaseOrder>>(
         `/purchase-orders${toQueryString({ perPage: 100, status })}`,
@@ -32,13 +37,37 @@ export function PurchaseOrdersPage() {
     ])
   }
 
+  const patchOrderStatus = (
+    current: ListResponse<PurchaseOrder> | undefined,
+    id: string,
+    nextStatus: PurchaseOrder['status'],
+  ) =>
+    current
+      ? {
+          ...current,
+          data: current.data.map((order) =>
+            order.id === id ? { ...order, status: nextStatus } : order,
+          ),
+        }
+      : current
+
   const send = useMutation({
     mutationFn: (id: string) =>
       apiRequest(`/purchase-orders/${id}/send`, {
         method: 'POST',
         body: { reason: 'Sent from frontend' },
       }),
-    onSuccess: invalidateOrders,
+    onMutate: async (id) =>
+      applyOptimisticListUpdate<ListResponse<PurchaseOrder>, string>(
+        queryClient,
+        ordersQueryKey,
+        id,
+        (current) => patchOrderStatus(current, id, 'SENT'),
+      ),
+    onError: (_error, _id, context) => {
+      rollbackOptimisticListUpdate(queryClient, ordersQueryKey, context)
+    },
+    onSettled: invalidateOrders,
   })
 
   const receive = useMutation({
@@ -47,7 +76,17 @@ export function PurchaseOrdersPage() {
         method: 'POST',
         body: { reason: 'Received from frontend' },
       }),
-    onSuccess: invalidateOrders,
+    onMutate: async (id) =>
+      applyOptimisticListUpdate<ListResponse<PurchaseOrder>, string>(
+        queryClient,
+        ordersQueryKey,
+        id,
+        (current) => patchOrderStatus(current, id, 'RECEIVED'),
+      ),
+    onError: (_error, _id, context) => {
+      rollbackOptimisticListUpdate(queryClient, ordersQueryKey, context)
+    },
+    onSettled: invalidateOrders,
   })
 
   const cancel = useMutation({
@@ -56,7 +95,17 @@ export function PurchaseOrdersPage() {
         method: 'POST',
         body: { reason: 'Cancelled from frontend' },
       }),
-    onSuccess: invalidateOrders,
+    onMutate: async (id) =>
+      applyOptimisticListUpdate<ListResponse<PurchaseOrder>, string>(
+        queryClient,
+        ordersQueryKey,
+        id,
+        (current) => patchOrderStatus(current, id, 'CANCELLED'),
+      ),
+    onError: (_error, _id, context) => {
+      rollbackOptimisticListUpdate(queryClient, ordersQueryKey, context)
+    },
+    onSettled: invalidateOrders,
   })
 
   return (

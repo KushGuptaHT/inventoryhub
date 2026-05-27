@@ -8,6 +8,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState, type FormEvent } from 'react'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
+import { getStoredAuth } from '../lib/auth'
+import {
+  applyOptimisticListUpdate,
+  rollbackOptimisticListUpdate,
+} from '../lib/optimistic-list'
 import { queryKeys } from '../lib/query-keys'
 import type {
   ListResponse,
@@ -50,8 +55,9 @@ export function MovementsPage() {
     queryKey: queryKeys.warehouses,
     queryFn: () => apiRequest<ListResponse<Warehouse>>('/warehouses?perPage=50'),
   })
+  const movementsQueryKey = [...queryKeys.movements, page] as const
   const movements = useQuery({
-    queryKey: [...queryKeys.movements, page],
+    queryKey: movementsQueryKey,
     queryFn: () =>
       apiRequest<MovementHistoryResponse>(
         `/movements${toQueryString({ page, perPage: 25 })}`,
@@ -91,7 +97,54 @@ export function MovementsPage() {
           notes: form.notes || 'Frontend stock adjustment',
         },
       }),
-    onSuccess: invalidateMovementViews,
+    onMutate: async () => {
+      const sku = skus.data?.data.find((item) => item.id === form.skuId)
+      const warehouse = warehouses.data?.data.find(
+        (item) => item.id === form.warehouseId,
+      )
+      const auth = getStoredAuth()
+      if (!sku || !warehouse) {
+        return undefined
+      }
+
+      const pending: MovementHistoryItem = {
+        id: `optimistic-${Date.now()}`,
+        type: 'ADJUSTMENT',
+        skuId: sku.id,
+        quantity: Math.abs(Number(form.quantityDelta)),
+        quantityDelta: Number(form.quantityDelta),
+        fromWarehouse: null,
+        toWarehouse: warehouse.id,
+        notes: `${form.notes || 'Frontend stock adjustment'} (pending)`,
+        createdByUserId: auth?.user.id ?? 'pending',
+        createdAt: new Date().toISOString(),
+        sku: { id: sku.id, code: sku.code, name: sku.name },
+        sourceWarehouse: null,
+        destinationWarehouse: {
+          id: warehouse.id,
+          code: warehouse.code,
+          name: warehouse.name,
+        },
+      }
+
+      return applyOptimisticListUpdate<MovementHistoryResponse, MovementHistoryItem>(
+        queryClient,
+        movementsQueryKey,
+        pending,
+        (current) =>
+          current
+            ? {
+                ...current,
+                items: [pending, ...current.items],
+                total: current.total + 1,
+              }
+            : current,
+      )
+    },
+    onError: (_error, _variables, context) => {
+      rollbackOptimisticListUpdate(queryClient, movementsQueryKey, context)
+    },
+    onSettled: invalidateMovementViews,
   })
 
   const transfer = useMutation({
@@ -121,7 +174,17 @@ export function MovementsPage() {
         header: 'To',
         cell: ({ row }) => row.original.destinationWarehouse.code,
       },
-      { accessorKey: 'quantity', header: 'Qty' },
+      {
+        header: 'Qty',
+        cell: ({ row }) => {
+          const item = row.original
+          if (item.type === 'ADJUSTMENT' && item.quantityDelta !== null) {
+            const sign = item.quantityDelta > 0 ? '+' : ''
+            return `${sign}${item.quantityDelta}`
+          }
+          return item.quantity
+        },
+      },
       {
         header: 'Created',
         cell: ({ row }) => new Date(row.original.createdAt).toLocaleString(),

@@ -206,7 +206,8 @@ model StockMovement {
   id              String   @id @default(cuid())
   type            String // "RECEIPT" | "ADJUSTMENT" | "TRANSFER"
   skuId           String
-  quantity        Int // Positive number (sign determined by type)
+  quantity        Int // Positive display qty; ADJUSTMENT sign lives in quantityDelta
+  quantityDelta   Int? // Signed delta for ADJUSTMENT only (negative = stock left warehouse)
   fromWarehouse   String? // NULL for RECEIPT/ADJUSTMENT, SET for TRANSFER source
   toWarehouse     String // SET for all types (RECEIPT target, ADJUSTMENT target, TRANSFER dest)
   notes           String? // Reason for movement (audit field)

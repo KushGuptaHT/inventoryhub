@@ -3,6 +3,10 @@ import { useState, type FormEvent } from 'react'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
 import { getStoredAuth } from '../lib/auth'
+import {
+  applyOptimisticListUpdate,
+  rollbackOptimisticListUpdate,
+} from '../lib/optimistic-list'
 import { queryKeys } from '../lib/query-keys'
 import { UserRole, type ListResponse, type Sku } from '../types/api'
 
@@ -31,8 +35,9 @@ export function SkusPage() {
   const [search, setSearch] = useState('')
   const perPage = 20
 
+  const skusQueryKey = [...queryKeys.skus, page, perPage, search] as const
   const skus = useQuery({
-    queryKey: [...queryKeys.skus, page, perPage, search],
+    queryKey: skusQueryKey,
     queryFn: () =>
       apiRequest<ListResponse<Sku>>(
         `/skus${toQueryString({ page, perPage, search })}`,
@@ -61,9 +66,11 @@ export function SkusPage() {
 
   const deleteSku = useMutation({
     mutationFn: (id: string) => apiRequest<void>(`/skus/${id}`, { method: 'DELETE' }),
-    onSuccess: async (_result, deletedId) => {
-      queryClient.setQueryData<ListResponse<Sku>>(
-        [...queryKeys.skus, page, perPage],
+    onMutate: async (deletedId) =>
+      applyOptimisticListUpdate<ListResponse<Sku>, string>(
+        queryClient,
+        skusQueryKey,
+        deletedId,
         (current) =>
           current
             ? {
@@ -75,7 +82,11 @@ export function SkusPage() {
                     : Math.max(0, current.total - 1),
               }
             : current,
-      )
+      ),
+    onError: (_error, _id, context) => {
+      rollbackOptimisticListUpdate(queryClient, skusQueryKey, context)
+    },
+    onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.skus }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),
@@ -94,9 +105,37 @@ export function SkusPage() {
           reorderThreshold: Number(input.reorderThreshold),
         },
       }),
-    onSuccess: async () => {
+    onMutate: async (input) =>
+      applyOptimisticListUpdate<ListResponse<Sku>, SkuForm & { id: string }>(
+        queryClient,
+        skusQueryKey,
+        input,
+        (current) =>
+        current
+          ? {
+              ...current,
+              data: current.data.map((sku) =>
+                sku.id === input.id
+                  ? {
+                      ...sku,
+                      code: input.code,
+                      name: input.name,
+                      unitCost: input.unitCost,
+                      reorderThreshold: Number(input.reorderThreshold),
+                    }
+                  : sku,
+              ),
+            }
+          : current,
+      ),
+    onError: (_error, _input, context) => {
+      rollbackOptimisticListUpdate(queryClient, skusQueryKey, context)
+    },
+    onSuccess: () => {
       setEditingId(null)
       setEditForm(emptyForm)
+    },
+    onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.skus }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),
