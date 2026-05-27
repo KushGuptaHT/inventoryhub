@@ -91,7 +91,47 @@ export const importService = {
           }
           await skuService.create(parsed.data);
         } else if (importRecord.type === ImportType.RECEIPT_IMPORT) {
-          const parsed = receiptSchema.safeParse(parsedJson);
+          const maybeSkuCode = parsedJson.skuCode;
+          const maybeWarehouseCode = parsedJson.warehouseCode;
+
+          const resolved =
+            typeof maybeSkuCode === "string" &&
+            typeof maybeWarehouseCode === "string"
+              ? await (async () => {
+                  const normalizedSkuCode = maybeSkuCode.trim().toUpperCase();
+                  const sku = await prisma.sKU.findUnique({
+                    where: { code: normalizedSkuCode },
+                    select: { id: true },
+                  });
+                  if (!sku) {
+                    throw new Error(`Unknown skuCode ${maybeSkuCode}`);
+                  }
+
+                  const warehouse = await prisma.warehouse.findFirst({
+                    where: {
+                      code: {
+                        equals: maybeWarehouseCode.trim(),
+                        mode: "insensitive",
+                      },
+                    },
+                    select: { id: true },
+                  });
+                  if (!warehouse) {
+                    throw new Error(
+                      `Unknown warehouseCode ${maybeWarehouseCode}`,
+                    );
+                  }
+
+                  return {
+                    skuId: sku.id,
+                    warehouseId: warehouse.id,
+                    quantity: parsedJson.quantity,
+                    notes: parsedJson.notes,
+                  } as Record<string, unknown>;
+                })()
+              : parsedJson;
+
+          const parsed = receiptSchema.safeParse(resolved);
           if (!parsed.success) {
             throw new Error(JSON.stringify(parsed.error.format()));
           }

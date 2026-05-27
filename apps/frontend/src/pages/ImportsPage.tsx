@@ -9,7 +9,7 @@ const skuCsvSample =
   'code,name,unitCost,reorderThreshold\nFRONTEND-SKU-001,Frontend Imported SKU,10,25'
 
 const receiptCsvSample =
-  'skuId,warehouseId,quantity,notes\n<sku-id>,<warehouse-id>,5,Frontend receipt import'
+  'skuCode,warehouseCode,quantity,notes\nTEST-WIDGET,WH-DEMO-01,5,Frontend receipt import'
 
 const parseCsvRows = (csv: string): Record<string, unknown>[] => {
   const [headerLine, ...rowLines] = csv
@@ -39,7 +39,6 @@ const parseCsvRows = (csv: string): Record<string, unknown>[] => {
 
 export function ImportsPage() {
   const [importId, setImportId] = useState('')
-  const [fileName, setFileName] = useState('frontend-import.csv')
   const [type, setType] = useState<'SKU_IMPORT' | 'RECEIPT_IMPORT'>('SKU_IMPORT')
   const [csvText, setCsvText] = useState(skuCsvSample)
   const [parseError, setParseError] = useState<string | null>(null)
@@ -64,6 +63,8 @@ export function ImportsPage() {
       if (rows.length === 0) {
         throw new Error('Add at least one CSV row before starting an import.')
       }
+
+      const fileName = `import-${new Date().toISOString()}.csv`
       return apiRequest<ImportJob>('/imports', {
         method: 'POST',
         body: {
@@ -99,13 +100,6 @@ export function ImportsPage() {
 
       <form className="form-card wide" onSubmit={submit}>
         <label>
-          File name
-          <input
-            value={fileName}
-            onChange={(event) => setFileName(event.target.value)}
-          />
-        </label>
-        <label>
           Import type
           <select
             value={type}
@@ -131,7 +125,7 @@ export function ImportsPage() {
         </label>
         <p className="muted">
           SKU columns: code,name,unitCost,reorderThreshold. Receipt imports need
-          real skuId and warehouseId values.
+          skuCode and warehouseCode values.
         </p>
         {parseError ? <p className="form-error">{parseError}</p> : null}
         {createImport.error ? (

@@ -148,6 +148,7 @@
   display: grid;
   gap: 8px;
   padding: 20px;
+  min-width: 0;
 }
 
 .stat-card span,
@@ -157,7 +158,12 @@
 
 .stat-card strong {
   color: var(--panel-strong);
-  font-size: 28px;
+  font-size: clamp(16px, 2vw, 28px);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 }
 
 .inline-form {
