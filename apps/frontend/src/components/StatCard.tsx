@@ -5,10 +5,11 @@ type StatCardProps = {
 }
 
 export function StatCard({ label, value, helper }: StatCardProps) {
+  const valueText = String(value)
   return (
     <article className="stat-card">
       <span>{label}</span>
-      <strong>{value}</strong>
+      <strong title={valueText}>{valueText}</strong>
       {helper ? <small>{helper}</small> : null}
     </article>
   )

@@ -148,8 +148,18 @@ export function AlertsPage() {
               {alerts.data?.data.map((alert) => (
                 <tr key={alert.id}>
                   <td>{alert.status}</td>
-                  <td>{alert.skuId}</td>
-                  <td>{alert.warehouseId}</td>
+                  <td>
+                    <strong>{alert.sku?.code ?? alert.skuId}</strong>
+                    {alert.sku?.name ? (
+                      <div className="muted">{alert.sku.name}</div>
+                    ) : null}
+                  </td>
+                  <td>
+                    <strong>{alert.warehouse?.code ?? alert.warehouseId}</strong>
+                    {alert.warehouse?.name ? (
+                      <div className="muted">{alert.warehouse.name}</div>
+                    ) : null}
+                  </td>
                   <td>{alert.availableStock}</td>
                   <td>{alert.reorderThreshold}</td>
                   <td className="actions">

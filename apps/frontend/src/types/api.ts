@@ -98,6 +98,8 @@ export type Alert = {
   id: string
   skuId: string
   warehouseId: string
+  sku?: { id: string; code: string; name: string }
+  warehouse?: { id: string; code: string; name: string }
   status: AlertStatus
   availableStock: number
   reorderThreshold: number

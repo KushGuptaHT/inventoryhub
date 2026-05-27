@@ -66,6 +66,10 @@ export const alertService = {
     const skip = (query.page - 1) * query.perPage;
     const alerts = await prisma.alert.findMany({
       where: query.status ? { status: query.status } : {},
+      include: {
+        sku: { select: { id: true, code: true, name: true } },
+        warehouse: { select: { id: true, code: true, name: true } },
+      },
       orderBy: { createdAt: "desc" },
       skip,
       take: query.perPage,
@@ -74,7 +78,13 @@ export const alertService = {
   },
 
   findById: async (id: string): Promise<AlertResponse | null> => {
-    const alert = await prisma.alert.findUnique({ where: { id } });
+    const alert = await prisma.alert.findUnique({
+      where: { id },
+      include: {
+        sku: { select: { id: true, code: true, name: true } },
+        warehouse: { select: { id: true, code: true, name: true } },
+      },
+    });
     return alert ? toAlertView(alert) : null;
   },
 

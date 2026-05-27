@@ -19,6 +19,16 @@ export type AlertResponse = {
   id: string;
   skuId: string;
   warehouseId: string;
+  sku?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  warehouse?: {
+    id: string;
+    code: string;
+    name: string;
+  };
   status: AlertStatus;
   availableStock: number;
   reorderThreshold: number;
@@ -38,6 +48,8 @@ export const toAlertView = (alert: AlertRow): AlertResponse => ({
   id: alert.id,
   skuId: alert.skuId,
   warehouseId: alert.warehouseId,
+  sku: alert.sku,
+  warehouse: alert.warehouse,
   status: alert.status as AlertStatus,
   availableStock: alert.availableStock,
   reorderThreshold: alert.reorderThreshold,
