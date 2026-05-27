@@ -17,6 +17,7 @@ import { redis } from "./lib/redis";
 import { jwtPlugin } from "./plugins/jwt";
 import { alertRoutes } from "./routes/alerts";
 import { dashboardRoutes } from "./routes/dashboard";
+import { forecastRoutes } from "./routes/forecast";
 import { movementRoutes } from "./routes/movements";
 import { authRoutes } from "./routes/auth";
 import { importRoutes } from "./routes/imports";
@@ -58,6 +59,7 @@ export const buildApp = async () => {
   await app.register(purchaseOrderRoutes, { prefix: "/purchase-orders" });
   await app.register(importRoutes, { prefix: "/imports" });
   await app.register(dashboardRoutes, { prefix: "/dashboard" });
+  await app.register(forecastRoutes, { prefix: "/forecast" });
 
   const healthCheckTimeoutMs = 2_000;
 

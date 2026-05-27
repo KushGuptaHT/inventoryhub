@@ -183,6 +183,7 @@ export const movementService = {
           type: MovementType.ADJUSTMENT,
           skuId: input.skuId,
           quantity: Math.abs(input.quantityDelta),
+          quantityDelta: input.quantityDelta,
           fromWarehouse: null,
           toWarehouse: input.warehouseId,
           notes: input.notes,

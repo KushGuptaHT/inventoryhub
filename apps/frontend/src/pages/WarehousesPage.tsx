@@ -3,6 +3,10 @@ import { useState, type FormEvent } from 'react'
 import { Status } from '../components/Status'
 import { apiRequest } from '../lib/api'
 import { getStoredAuth } from '../lib/auth'
+import {
+  applyOptimisticListUpdate,
+  rollbackOptimisticListUpdate,
+} from '../lib/optimistic-list'
 import { queryKeys } from '../lib/query-keys'
 import { UserRole, type ListResponse, type Warehouse } from '../types/api'
 
@@ -24,8 +28,9 @@ export function WarehousesPage() {
   const [editForm, setEditForm] = useState(emptyForm)
   const perPage = 20
 
+  const warehousesQueryKey = [...queryKeys.warehouses, page, perPage] as const
   const warehouses = useQuery({
-    queryKey: [...queryKeys.warehouses, page, perPage],
+    queryKey: warehousesQueryKey,
     queryFn: () =>
       apiRequest<ListResponse<Warehouse>>(
         `/warehouses?page=${page}&perPage=${perPage}`,
@@ -47,9 +52,11 @@ export function WarehousesPage() {
   const deleteWarehouse = useMutation({
     mutationFn: (id: string) =>
       apiRequest<void>(`/warehouses/${id}`, { method: 'DELETE' }),
-    onSuccess: async (_result, deletedId) => {
-      queryClient.setQueryData<ListResponse<Warehouse>>(
-        [...queryKeys.warehouses, page, perPage],
+    onMutate: async (deletedId) =>
+      applyOptimisticListUpdate<ListResponse<Warehouse>, string>(
+        queryClient,
+        warehousesQueryKey,
+        deletedId,
         (current) =>
           current
             ? {
@@ -63,7 +70,11 @@ export function WarehousesPage() {
                     : Math.max(0, current.total - 1),
               }
             : current,
-      )
+      ),
+    onError: (_error, _id, context) => {
+      rollbackOptimisticListUpdate(queryClient, warehousesQueryKey, context)
+    },
+    onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.warehouses }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),
@@ -81,9 +92,36 @@ export function WarehousesPage() {
           address: input.address,
         },
       }),
-    onSuccess: async () => {
+    onMutate: async (input) =>
+      applyOptimisticListUpdate<ListResponse<Warehouse>, WarehouseForm & { id: string }>(
+        queryClient,
+        warehousesQueryKey,
+        input,
+        (current) =>
+          current
+            ? {
+                ...current,
+                data: current.data.map((warehouse) =>
+                  warehouse.id === input.id
+                    ? {
+                        ...warehouse,
+                        code: input.code,
+                        name: input.name,
+                        address: input.address,
+                      }
+                    : warehouse,
+                ),
+              }
+            : current,
+      ),
+    onError: (_error, _input, context) => {
+      rollbackOptimisticListUpdate(queryClient, warehousesQueryKey, context)
+    },
+    onSuccess: () => {
       setEditingId(null)
       setEditForm(emptyForm)
+    },
+    onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.warehouses }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),

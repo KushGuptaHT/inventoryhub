@@ -2,7 +2,7 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase: Phase 5 — Complete ✅
+## Current Phase: Phase 5 — Complete (optimistic UI + forecast) ✅
 
 ### Phase 1: Foundation (10 hours)
 - [x] Infrastructure setup: Fastify, Docker, PostgreSQL, Redis, Prisma schema, migration, generated Prisma client
@@ -39,10 +39,10 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 ### Phase 5: Frontend Integration (12 hours)
 - [x] TanStack Query integration
 - [x] TanStack Table for movement history
-- [ ] Optimistic updates for UX
+- [x] Optimistic updates for UX
 - [x] Dashboard UI
 - [x] Dashboard warehouse filter and list filters
-- [ ] Forecasting view
+- [x] Forecasting view
 
 ### Phase 6: Testing & Docs (8 hours)
 - [ ] Unit tests with Vitest

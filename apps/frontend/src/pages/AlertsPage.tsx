@@ -3,6 +3,10 @@ import { useState } from 'react'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
 import { getStoredAuth } from '../lib/auth'
+import {
+  applyOptimisticListUpdate,
+  rollbackOptimisticListUpdate,
+} from '../lib/optimistic-list'
 import { queryKeys } from '../lib/query-keys'
 import { UserRole, type Alert, type ListResponse } from '../types/api'
 
@@ -11,8 +15,9 @@ export function AlertsPage() {
   const auth = getStoredAuth()
   const canManage = auth?.user.role === UserRole.MANAGER
   const [status, setStatus] = useState('')
+  const alertsQueryKey = [...queryKeys.alerts, status] as const
   const alerts = useQuery({
-    queryKey: [...queryKeys.alerts, status],
+    queryKey: alertsQueryKey,
     queryFn: () =>
       apiRequest<ListResponse<Alert>>(
         `/alerts${toQueryString({ perPage: 100, status })}`,
@@ -33,7 +38,27 @@ export function AlertsPage() {
         method: 'PATCH',
         body: { reason: 'Acknowledged from frontend' },
       }),
-    onSuccess: invalidateAlerts,
+    onMutate: async (id) =>
+      applyOptimisticListUpdate<ListResponse<Alert>, string>(
+        queryClient,
+        alertsQueryKey,
+        id,
+        (current) =>
+          current
+            ? {
+                ...current,
+                data: current.data.map((alert) =>
+                  alert.id === id
+                    ? { ...alert, status: 'ACKNOWLEDGED' as const }
+                    : alert,
+                ),
+              }
+            : current,
+      ),
+    onError: (_error, _id, context) => {
+      rollbackOptimisticListUpdate(queryClient, alertsQueryKey, context)
+    },
+    onSettled: invalidateAlerts,
   })
 
   const resolve = useMutation({
@@ -42,7 +67,27 @@ export function AlertsPage() {
         method: 'PATCH',
         body: { reason: 'Resolved from frontend' },
       }),
-    onSuccess: invalidateAlerts,
+    onMutate: async (id) =>
+      applyOptimisticListUpdate<ListResponse<Alert>, string>(
+        queryClient,
+        alertsQueryKey,
+        id,
+        (current) =>
+          current
+            ? {
+                ...current,
+                data: current.data.map((alert) =>
+                  alert.id === id
+                    ? { ...alert, status: 'RESOLVED' as const }
+                    : alert,
+                ),
+              }
+            : current,
+      ),
+    onError: (_error, _id, context) => {
+      rollbackOptimisticListUpdate(queryClient, alertsQueryKey, context)
+    },
+    onSettled: invalidateAlerts,
   })
 
   const createPo = useMutation({

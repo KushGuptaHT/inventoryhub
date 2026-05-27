@@ -73,6 +73,7 @@ export type MovementHistoryItem = {
   type: MovementType
   skuId: string
   quantity: number
+  quantityDelta: number | null
   fromWarehouse: string | null
   toWarehouse: string
   notes: string | null
@@ -151,6 +152,29 @@ export type ImportJob = {
   startedAt: string | null
   completedAt: string | null
   createdAt: string
+}
+
+export type ForecastRow = {
+  skuId: string
+  skuCode: string
+  skuName: string
+  warehouseId: string
+  warehouseCode: string
+  warehouseName: string
+  available: number
+  reorderThreshold: number
+  isLowStock: boolean
+  outflow90d: number
+  avgDailyOutflow30d: number
+  projectedDaysRemaining: number | null
+}
+
+export type ForecastResponse = {
+  items: ForecastRow[]
+  page: number
+  perPage: number
+  total: number
+  totalPages: number
 }
 
 export type ImportRow = {

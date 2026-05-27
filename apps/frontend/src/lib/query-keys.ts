@@ -6,4 +6,5 @@ export const queryKeys = {
   alerts: ['alerts', 'list'] as const,
   purchaseOrders: ['purchase-orders', 'list'] as const,
   imports: ['imports'] as const,
+  forecast: ['forecast', 'skus'] as const,
 }

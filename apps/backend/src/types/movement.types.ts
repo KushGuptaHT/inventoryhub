@@ -22,6 +22,7 @@ export type MovementResult = {
     type: MovementType;
     skuId: string;
     quantity: number;
+    quantityDelta: number | null;
     fromWarehouse: string | null;
     toWarehouse: string;
     notes: string | null;
@@ -74,6 +75,7 @@ type StockMovementRow = {
   type: string;
   skuId: string;
   quantity: number;
+  quantityDelta: number | null;
   fromWarehouse: string | null;
   toWarehouse: string;
   notes: string | null;
@@ -88,6 +90,7 @@ export const toMovementView = (
   type: movement.type as MovementType,
   skuId: movement.skuId,
   quantity: movement.quantity,
+  quantityDelta: movement.quantityDelta ?? null,
   fromWarehouse: movement.fromWarehouse,
   toWarehouse: movement.toWarehouse,
   notes: movement.notes,

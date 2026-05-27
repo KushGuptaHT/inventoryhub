@@ -4,6 +4,7 @@ import { RouteError } from './components/RouteError'
 import { getStoredAuth } from './lib/auth'
 import { AlertsPage } from './pages/AlertsPage'
 import { DashboardPage } from './pages/DashboardPage'
+import { ForecastPage } from './pages/ForecastPage'
 import { ImportsPage } from './pages/ImportsPage'
 import { LoginPage } from './pages/LoginPage'
 import { MovementsPage } from './pages/MovementsPage'
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
       { path: 'warehouses', element: <WarehousesPage /> },
       { path: 'skus', element: <SkusPage /> },
       { path: 'movements', element: <MovementsPage /> },
+      { path: 'forecast', element: <ForecastPage /> },
       { path: 'alerts', element: <AlertsPage /> },
       { path: 'purchase-orders', element: <PurchaseOrdersPage /> },
       { path: 'imports', element: <ImportsPage /> },
