@@ -15,12 +15,14 @@ export function AlertsPage() {
   const auth = getStoredAuth()
   const canManage = auth?.user.role === UserRole.MANAGER
   const [status, setStatus] = useState('')
-  const alertsQueryKey = [...queryKeys.alerts, status] as const
+  const [page, setPage] = useState(1)
+  const perPage = 50
+  const alertsQueryKey = [...queryKeys.alerts, status, page, perPage] as const
   const alerts = useQuery({
     queryKey: alertsQueryKey,
     queryFn: () =>
       apiRequest<ListResponse<Alert>>(
-        `/alerts${toQueryString({ perPage: 100, status })}`,
+        `/alerts${toQueryString({ perPage, page, status })}`,
       ),
   })
 
@@ -113,7 +115,13 @@ export function AlertsPage() {
       </div>
 
       <div className="inline-form">
-        <select value={status} onChange={(event) => setStatus(event.target.value)}>
+        <select
+          value={status}
+          onChange={(event) => {
+            setPage(1)
+            setStatus(event.target.value)
+          }}
+        >
           <option value="">All alert statuses</option>
           <option value="OPEN">Open</option>
           <option value="ACKNOWLEDGED">Acknowledged</option>
@@ -196,6 +204,31 @@ export function AlertsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+        <div className="pagination">
+          <button
+            type="button"
+            disabled={page === 1}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+          >
+            Previous
+          </button>
+          <span>
+            Page {alerts.data?.page ?? page}
+            {alerts.data?.totalPages ? ` of ${alerts.data.totalPages}` : ''}
+            {alerts.data?.total !== undefined ? ` (${alerts.data.total} alerts)` : ''}
+          </span>
+          <button
+            type="button"
+            disabled={
+              alerts.data?.totalPages !== undefined
+                ? page >= alerts.data.totalPages
+                : (alerts.data?.data.length ?? 0) < perPage
+            }
+            onClick={() => setPage((current) => current + 1)}
+          >
+            Next
+          </button>
         </div>
         {acknowledge.error ? (
           <p className="form-error">Acknowledge failed: {acknowledge.error.message}</p>

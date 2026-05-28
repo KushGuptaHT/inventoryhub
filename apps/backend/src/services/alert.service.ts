@@ -11,6 +11,7 @@
 // maintaining audit history safely with transactions and concurrency protection.
 
 import { Prisma } from "../generated/prisma";
+import { invalidateDashboardSummaryCacheSafe } from "../lib/dashboard-cache";
 import { getAvailable } from "../lib/inventory-stock";
 import { prisma } from "../lib/prisma";
 import type {
@@ -77,6 +78,12 @@ export const alertService = {
     return alerts.map(toAlertView);
   },
 
+  count: async (query: AlertListQuery): Promise<number> => {
+    return prisma.alert.count({
+      where: query.status ? { status: query.status } : {},
+    });
+  },
+
   findById: async (id: string): Promise<AlertResponse | null> => {
     const alert = await prisma.alert.findUnique({
       where: { id },
@@ -122,6 +129,7 @@ export const alertService = {
           reorderThreshold: sku.reorderThreshold,
         },
       });
+      await invalidateDashboardSummaryCacheSafe();
       return toAlertView(alert);
     } catch (error: unknown) {
       if (
@@ -168,6 +176,7 @@ export const alertService = {
       return alert;
     });
 
+    await invalidateDashboardSummaryCacheSafe();
     return toAlertView(updated);
   },
 
@@ -205,6 +214,7 @@ export const alertService = {
       return alert;
     });
 
+    await invalidateDashboardSummaryCacheSafe();
     return toAlertView(updated);
   },
 

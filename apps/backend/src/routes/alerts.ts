@@ -27,11 +27,16 @@ export const alertRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: parsed.error.format() });
     }
 
-    const data = await alertService.findMany(parsed.data);
+    const [data, total] = await Promise.all([
+      alertService.findMany(parsed.data),
+      alertService.count(parsed.data),
+    ]);
     return {
       data,
       page: parsed.data.page,
       perPage: parsed.data.perPage,
+      total,
+      totalPages: Math.ceil(total / parsed.data.perPage),
     };
   });
 
