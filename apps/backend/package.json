@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node --import tsx --test tests/*.integration.test.ts",
     "test:int": "node --import tsx --test tests/*.integration.test.ts",
+    "test:unit": "vitest run",
     "dev": "tsx watch src/server.ts",
     "worker": "tsx src/workers/index.ts",
     "dev:worker": "tsx watch src/workers/index.ts",
@@ -42,6 +43,7 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^24.12.4",
     "@types/pg": "^8.20.0",
+    "@vitest/coverage-v8": "^4.1.7",
     "prisma": "^7.8.0",
     "tsx": "^4.22.3",
     "typescript": "~6.0.3"
