@@ -130,6 +130,7 @@ export type PurchaseOrder = {
   status: PurchaseOrderStatus
   poNumber: string
   warehouseId: string
+  warehouse?: { id: string; code: string; name: string }
   sentAt: string | null
   sentBy: string | null
   receivedAt: string | null

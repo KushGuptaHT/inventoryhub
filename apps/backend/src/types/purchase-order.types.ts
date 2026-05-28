@@ -28,12 +28,19 @@ export type PurchaseOrderLineResponse = {
   createdAt: Date;
 };
 
+export type PurchaseOrderWarehouseResponse = {
+  id: string;
+  code: string;
+  name: string;
+};
+
 export type PurchaseOrderResponse = {
   id: string;
   alertId: string;
   status: PurchaseOrderStatus;
   poNumber: string;
   warehouseId: string;
+  warehouse?: PurchaseOrderWarehouseResponse;
   sentAt: Date | null;
   sentBy: string | null;
   receivedAt: Date | null;

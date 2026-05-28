@@ -148,7 +148,11 @@ export function PurchaseOrdersPage() {
                 <tr key={order.id}>
                   <td>{order.poNumber}</td>
                   <td>{order.status}</td>
-                  <td>{order.warehouseId}</td>
+                  <td>
+                    {order.warehouse
+                      ? `${order.warehouse.code} — ${order.warehouse.name}`
+                      : order.warehouseId}
+                  </td>
                   <td>{order.lineItems.length}</td>
                   <td className="actions">
                     {canManage && order.status === 'DRAFT' ? (

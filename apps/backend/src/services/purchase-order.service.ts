@@ -27,6 +27,7 @@ import { AlertStatus } from "../types/alert.types";
 import {
   PurchaseOrderStatus,
   type PurchaseOrderLineResponse,
+  type PurchaseOrderWarehouseResponse,
   type PurchaseOrderResponse,
 } from "../types/purchase-order.types";
 
@@ -46,6 +47,11 @@ type PurchaseOrderWithLines = {
   status: string;
   poNumber: string;
   warehouseId: string;
+  warehouse?: {
+    id: string;
+    code: string;
+    name: string;
+  };
   sentAt: Date | null;
   sentBy: string | null;
   receivedAt: Date | null;
@@ -78,6 +84,14 @@ const toLineView = (
   createdAt: line.createdAt,
 });
 
+const toWarehouseView = (
+  warehouse: NonNullable<PurchaseOrderWithLines["warehouse"]>,
+): PurchaseOrderWarehouseResponse => ({
+  id: warehouse.id,
+  code: warehouse.code,
+  name: warehouse.name,
+});
+
 const toPurchaseOrderView = (
   po: PurchaseOrderWithLines,
 ): PurchaseOrderResponse => ({
@@ -86,6 +100,7 @@ const toPurchaseOrderView = (
   status: po.status as PurchaseOrderStatus,
   poNumber: po.poNumber,
   warehouseId: po.warehouseId,
+  warehouse: po.warehouse ? toWarehouseView(po.warehouse) : undefined,
   sentAt: po.sentAt,
   sentBy: po.sentBy,
   receivedAt: po.receivedAt,
@@ -98,6 +113,7 @@ const toPurchaseOrderView = (
 
 const includeLineItems = {
   lineItems: { orderBy: { createdAt: "asc" } },
+  warehouse: { select: { id: true, code: true, name: true } },
 } as const;
 
 const createPoNumber = () =>
