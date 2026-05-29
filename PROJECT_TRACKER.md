@@ -2,7 +2,23 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase: Phase 5 — Complete (optimistic UI + forecast) ✅
+## Current Phase: Platform UX — Phase 1 Search (complete) ✅ → Next: pg_trgm, warehouse context, categories
+
+### Phase 1 (Search UX): Search-first autocomplete + list contract — COMPLETE
+- [x] Standardize paginated list APIs on `{ items, page, perPage, total, totalPages }`
+- [x] Frontend `PaginatedResponse<T>`; all list pages use `.items`
+- [x] Purchase order list returns `total` / `totalPages` via `purchaseOrderService.count`
+- [x] `apiRequest` forwards `AbortSignal` for cancelled stale searches
+- [x] Generic `useDebouncedSearch` hook (debounce + React Query + latest-wins)
+- [x] Generic `Combobox` UI (keyboard nav, no domain knowledge)
+- [x] `sku-search.service` + `useSkuSearch` + `SkuAutocomplete`
+- [x] Movements page: SKU dropdowns replaced with search-first autocomplete
+- [x] Plan doc: `PHASE_1_SEARCH_AUTOCOMPLETE_PLAN.md`
+- [ ] **Follow-up:** `pg_trgm` GIN indexes on SKU name/code (and warehouse search param)
+- [ ] **Follow-up:** Warehouse session context (localStorage + topbar + form defaults)
+- [ ] **Follow-up:** Category + tags Prisma schema and CRUD APIs
+
+### Phase 5 — Complete (optimistic UI + forecast) ✅
 
 ### Phase 1: Foundation (10 hours)
 - [x] Infrastructure setup: Fastify, Docker, PostgreSQL, Redis, Prisma schema, migration, generated Prisma client
@@ -56,6 +72,7 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 
 | Branch | Purpose | Status | Key Checks |
 | --- | --- | --- | --- |
+| `feature/phase-1-search-autocomplete` | Search infrastructure + SKU autocomplete + `items` list contract | **Merged** (PR #11) | `pnpm test:unit`; `pnpm test:int`; `pnpm --dir apps/frontend build` |
 | `feature/warehouse-crud` | Phase 1: auth + warehouse + SKU CRUD | Complete — ready for PR | tsc pass; RBAC + cache pattern in place |
 
 ## Assignment-Critical Backend Work
@@ -88,6 +105,10 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [x] Phase 5 frontend build: `pnpm --dir apps/frontend build`
 - [x] Phase 5 frontend lint: `pnpm --dir apps/frontend lint`
 - [x] Phase 5 backend movement history endpoint typecheck
+- [x] Phase 1 Search: frontend build after autocomplete (`feature/phase-1-search-autocomplete`)
+- [x] Phase 1 Search: backend unit + integration tests pass on search branch
+- [ ] Phase 1 Search manual: Movements SKU autocomplete (type, select, clear, submit)
+- [ ] Phase 1 Search manual: fast typing does not show stale SKU results
 - [ ] **Auth RBAC**: Operator POST /warehouses → 403; Manager → 201
 - [ ] **SKU RBAC**: Operator POST /skus → 403; Manager → 201
 - [ ] **SKU cache**: GET /skus/code/:code twice — second read from Redis
@@ -105,7 +126,7 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 | Method | Path | Auth | Role |
 | --- | --- | --- | --- |
 | POST | `/skus` | Yes | MANAGER |
-| GET | `/skus` | Yes | Any |
+| GET | `/skus` | Yes | Any (paginated: `items`, optional `search`) |
 | GET | `/skus/code/:code` | Yes | Any (cached) |
 | GET | `/skus/:id` | Yes | Any |
 | PATCH | `/skus/:id` | Yes | MANAGER |
