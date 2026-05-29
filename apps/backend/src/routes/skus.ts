@@ -19,13 +19,20 @@ import { FastifyPluginAsync } from "fastify";
 import { authenticate } from "../middleware/authenticate";
 import { requireRole } from "../middleware/requireRole";
 import {
+  skuCategoryAssignSchema,
+  skuCategoryParamsSchema,
+} from "../schemas/category.schemas";
+import {
   skuCodeParamsSchema,
   skuCreateSchema,
   skuListQuerySchema,
   skuParamsSchema,
   skuUpdateSchema,
 } from "../schemas/sku.schemas";
+import { skuTagAssignSchema, skuTagParamsSchema } from "../schemas/tag.schemas";
+import { CategoryError, categoryService } from "../services/category.service";
 import { SkuError, skuService } from "../services/sku.service";
+import { TagError, tagService } from "../services/tag.service";
 import { UserRole } from "../types/auth.types";
 
 export const skuRoutes: FastifyPluginAsync = async (fastify) => {
@@ -124,6 +131,91 @@ export const skuRoutes: FastifyPluginAsync = async (fastify) => {
         return sku;
       } catch (error: unknown) {
         if (error instanceof SkuError) {
+          return reply.status(error.statusCode).send({ message: error.message });
+        }
+        throw error;
+      }
+    },
+  );
+
+  fastify.post(
+    "/:id/categories",
+    { preHandler: [requireRole(UserRole.MANAGER)] },
+    async (request, reply) => {
+      const params = skuParamsSchema.safeParse(request.params);
+      const body = skuCategoryAssignSchema.safeParse(request.body);
+      if (!params.success || !body.success) {
+        return reply.status(400).send({ error: "Invalid request" });
+      }
+      try {
+        await categoryService.assignToSku(params.data.id, body.data);
+        return reply.status(204).send();
+      } catch (error: unknown) {
+        if (error instanceof CategoryError) {
+          return reply.status(error.statusCode).send({ message: error.message });
+        }
+        throw error;
+      }
+    },
+  );
+
+  fastify.delete(
+    "/:id/categories/:categoryId",
+    { preHandler: [requireRole(UserRole.MANAGER)] },
+    async (request, reply) => {
+      const parsed = skuCategoryParamsSchema.safeParse(request.params);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+      try {
+        await categoryService.removeFromSku(
+          parsed.data.id,
+          parsed.data.categoryId,
+        );
+        return reply.status(204).send();
+      } catch (error: unknown) {
+        if (error instanceof CategoryError) {
+          return reply.status(error.statusCode).send({ message: error.message });
+        }
+        throw error;
+      }
+    },
+  );
+
+  fastify.post(
+    "/:id/tags",
+    { preHandler: [requireRole(UserRole.MANAGER)] },
+    async (request, reply) => {
+      const params = skuParamsSchema.safeParse(request.params);
+      const body = skuTagAssignSchema.safeParse(request.body);
+      if (!params.success || !body.success) {
+        return reply.status(400).send({ error: "Invalid request" });
+      }
+      try {
+        await tagService.assignToSku(params.data.id, body.data);
+        return reply.status(204).send();
+      } catch (error: unknown) {
+        if (error instanceof TagError) {
+          return reply.status(error.statusCode).send({ message: error.message });
+        }
+        throw error;
+      }
+    },
+  );
+
+  fastify.delete(
+    "/:id/tags/:tagId",
+    { preHandler: [requireRole(UserRole.MANAGER)] },
+    async (request, reply) => {
+      const parsed = skuTagParamsSchema.safeParse(request.params);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.format() });
+      }
+      try {
+        await tagService.removeFromSku(parsed.data.id, parsed.data.tagId);
+        return reply.status(204).send();
+      } catch (error: unknown) {
+        if (error instanceof TagError) {
           return reply.status(error.statusCode).send({ message: error.message });
         }
         throw error;

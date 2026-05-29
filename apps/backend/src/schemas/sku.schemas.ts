@@ -9,6 +9,17 @@
 
 import { z } from "zod";
 
+/** Query params may repeat or send a single id (categoryIds=id1&categoryIds=id2). */
+const coerceStringArray = z
+  .union([z.string(), z.array(z.string())])
+  .optional()
+  .transform((value) => {
+    if (value === undefined) {
+      return undefined;
+    }
+    return Array.isArray(value) ? value : [value];
+  });
+
 const unitCostSchema = z
   .union([z.number(), z.string()])
   .transform((value) => (typeof value === "string" ? Number(value) : value))
@@ -52,6 +63,12 @@ export const skuListQuerySchema = z.object({
   perPage: z.coerce.number().int().positive().max(100).optional().default(20),
   includeInactive: z.coerce.boolean().optional().default(false),
   search: z.string().optional(),
+  /** Filter SKUs in any of these categories (OR). */
+  categoryIds: coerceStringArray,
+  /** When true, include SKUs in subcategories of each categoryIds entry. */
+  includeDescendants: z.coerce.boolean().optional().default(true),
+  /** Filter SKUs that have ALL of these tags (AND). */
+  tagIds: coerceStringArray,
 });
 
 export type SkuCreateInput = z.infer<typeof skuCreateSchema>;

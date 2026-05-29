@@ -15,6 +15,7 @@ import {
   invalidateSkuCache,
   setCachedSku,
 } from "../lib/sku-cache";
+import { categoryService } from "./category.service";
 import type {
   SkuCreateInput,
   SkuListQuery,
@@ -33,6 +34,21 @@ export type SkuResponse = {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type SkuDetailResponse = SkuResponse & {
+  categories: {
+    id: string;
+    name: string;
+    slug: string;
+    isPrimary: boolean;
+  }[];
+  tags: {
+    id: string;
+    name: string;
+    slug: string;
+    color: string | null;
+  }[];
 };
 
 type SkuRecord = {
@@ -71,6 +87,48 @@ export class SkuError extends Error {
   }
 }
 
+/**
+ * Build Prisma where clause for list/count including search, categories, tags.
+ */
+const buildListWhere = async (query: SkuListQuery): Promise<Prisma.SKUWhereInput> => {
+  const search = query.search?.trim();
+  const where: Prisma.SKUWhereInput = {
+    ...(query.includeInactive ? {} : { isActive: true }),
+    ...(search
+      ? {
+          OR: [
+            { code: { contains: search, mode: "insensitive" } },
+            { name: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : {}),
+  };
+
+  if (query.categoryIds && query.categoryIds.length > 0) {
+    const categoryIds = await categoryService.resolveFilterCategoryIds(
+      query.categoryIds,
+      query.includeDescendants,
+    );
+    where.categories = { some: { categoryId: { in: categoryIds } } };
+  }
+
+  if (query.tagIds && query.tagIds.length > 0) {
+    const existingAnd = where.AND
+      ? Array.isArray(where.AND)
+        ? where.AND
+        : [where.AND]
+      : [];
+    where.AND = [
+      ...existingAnd,
+      ...query.tagIds.map((tagId) => ({
+        tags: { some: { tagId } },
+      })),
+    ];
+  }
+
+  return where;
+};
+
 const handleUniqueViolation = (error: unknown): never => {
   if (
     error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -104,20 +162,10 @@ export const skuService = {
 
   findMany: async (query: SkuListQuery): Promise<SkuResponse[]> => {
     const skip = (query.page - 1) * query.perPage;
-    const search = query.search?.trim();
+    const where = await buildListWhere(query);
 
     const skus = await prisma.sKU.findMany({
-      where: {
-        ...(query.includeInactive ? {} : { isActive: true }),
-        ...(search
-          ? {
-              OR: [
-                { code: { contains: search, mode: "insensitive" } },
-                { name: { contains: search, mode: "insensitive" } },
-              ],
-            }
-          : {}),
-      },
+      where,
       orderBy: { createdAt: "desc" },
       skip,
       take: query.perPage,
@@ -127,25 +175,41 @@ export const skuService = {
   },
 
   count: async (query: SkuListQuery): Promise<number> => {
-    const search = query.search?.trim();
-    return prisma.sKU.count({
-      where: {
-        ...(query.includeInactive ? {} : { isActive: true }),
-        ...(search
-          ? {
-              OR: [
-                { code: { contains: search, mode: "insensitive" } },
-                { name: { contains: search, mode: "insensitive" } },
-              ],
-            }
-          : {}),
-      },
-    });
+    const where = await buildListWhere(query);
+    return prisma.sKU.count({ where });
   },
 
-  findById: async (id: string): Promise<SkuResponse | null> => {
-    const sku = await prisma.sKU.findUnique({ where: { id } });
-    return sku ? serializeSku(sku) : null;
+  findById: async (id: string): Promise<SkuDetailResponse | null> => {
+    const sku = await prisma.sKU.findUnique({
+      where: { id },
+      include: {
+        categories: {
+          include: { category: true },
+        },
+        tags: {
+          include: { tag: true },
+        },
+      },
+    });
+    if (!sku) {
+      return null;
+    }
+    const base = serializeSku(sku);
+    return {
+      ...base,
+      categories: sku.categories.map((row) => ({
+        id: row.category.id,
+        name: row.category.name,
+        slug: row.category.slug,
+        isPrimary: row.isPrimary,
+      })),
+      tags: sku.tags.map((row) => ({
+        id: row.tag.id,
+        name: row.tag.name,
+        slug: row.tag.slug,
+        color: row.tag.color,
+      })),
+    };
   },
 
   /**
