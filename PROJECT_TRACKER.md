@@ -2,7 +2,18 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase: Platform UX — Phase 1 Search (complete) ✅ → Next: pg_trgm, warehouse context, categories
+## Current Phase: Platform UX — Phase 1 follow-ups (complete) ✅ → Next: Phase 2 browse/filter UI
+
+### Phase 1 platform follow-ups — COMPLETE
+- [x] `pg_trgm` GIN indexes on SKU + Warehouse name/code
+- [x] `GET /warehouses?search=` for future warehouse autocomplete
+- [x] Warehouse session context (`inventoryhub.activeWarehouse`, topbar selector)
+- [x] Movements / Dashboard / Forecast default from session warehouse
+- [x] Category + Tag models, migrations, CRUD APIs
+- [x] SKU ↔ category/tag assignment endpoints
+- [x] `GET /skus?categoryIds[]` + `tagIds[]` filters; detail includes taxonomy
+- [x] Redis `categories:tree` cache (invalidated on category mutations)
+- [x] Plan doc: `PHASE_1_PLATFORM_FOLLOWUP_PLAN.md`
 
 ### Phase 1 (Search UX): Search-first autocomplete + list contract — COMPLETE
 - [x] Standardize paginated list APIs on `{ items, page, perPage, total, totalPages }`
@@ -14,9 +25,6 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [x] `sku-search.service` + `useSkuSearch` + `SkuAutocomplete`
 - [x] Movements page: SKU dropdowns replaced with search-first autocomplete
 - [x] Plan doc: `PHASE_1_SEARCH_AUTOCOMPLETE_PLAN.md`
-- [ ] **Follow-up:** `pg_trgm` GIN indexes on SKU name/code (and warehouse search param)
-- [ ] **Follow-up:** Warehouse session context (localStorage + topbar + form defaults)
-- [ ] **Follow-up:** Category + tags Prisma schema and CRUD APIs
 
 ### Phase 5 — Complete (optimistic UI + forecast) ✅
 
@@ -73,6 +81,7 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 | Branch | Purpose | Status | Key Checks |
 | --- | --- | --- | --- |
 | `feature/phase-1-search-autocomplete` | Search infrastructure + SKU autocomplete + `items` list contract | **Merged** (PR #11) | `pnpm test:unit`; `pnpm test:int`; `pnpm --dir apps/frontend build` |
+| `feature/phase-1-platform-followups` | pg_trgm + warehouse session + category/tags APIs | Ready for PR | tsc; unit; int; frontend build |
 | `feature/warehouse-crud` | Phase 1: auth + warehouse + SKU CRUD | Complete — ready for PR | tsc pass; RBAC + cache pattern in place |
 
 ## Assignment-Critical Backend Work
@@ -109,6 +118,10 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [x] Phase 1 Search: backend unit + integration tests pass on search branch
 - [ ] Phase 1 Search manual: Movements SKU autocomplete (type, select, clear, submit)
 - [ ] Phase 1 Search manual: fast typing does not show stale SKU results
+- [x] Phase 1 follow-ups: backend tsc + unit + integration tests pass
+- [x] Phase 1 follow-ups: frontend build passes
+- [ ] Phase 1 follow-ups manual: topbar warehouse session + movement form defaults
+- [ ] Phase 1 follow-ups manual: create category, assign to SKU, filter `GET /skus?categoryIds[]=`
 - [ ] **Auth RBAC**: Operator POST /warehouses → 403; Manager → 201
 - [ ] **SKU RBAC**: Operator POST /skus → 403; Manager → 201
 - [ ] **SKU cache**: GET /skus/code/:code twice — second read from Redis
@@ -133,3 +146,17 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 | DELETE | `/skus/:id` | Yes | MANAGER |
 
 **Cache:** key `sku:{CODE}`, TTL 3600s, invalidated on PATCH/DELETE (and when code changes).
+
+## Category & tag API quick reference
+
+| Method | Path | Auth | Role |
+| --- | --- | --- | --- |
+| GET | `/categories` | Yes | Any (`?format=tree` optional) |
+| POST/PATCH/DELETE | `/categories` | Yes | MANAGER |
+| GET/POST/PATCH/DELETE | `/tags` | Yes | MANAGER |
+| POST | `/skus/:id/categories` | Yes | MANAGER |
+| DELETE | `/skus/:id/categories/:categoryId` | Yes | MANAGER |
+| POST | `/skus/:id/tags` | Yes | MANAGER |
+| DELETE | `/skus/:id/tags/:tagId` | Yes | MANAGER |
+
+**Category tree cache:** key `categories:tree`, TTL 3600s, invalidated on category mutations.
