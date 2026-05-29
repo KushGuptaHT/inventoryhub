@@ -86,6 +86,7 @@ model Warehouse {
   purchaseOrders     PurchaseOrder[]
 
   @@index([code])
+  // GIN trigram indexes on name/code: see migration add_pg_trgm_search_indexes
 }
 
 // ============================================================================
@@ -122,9 +123,12 @@ model SKU {
   alerts             Alert[]
   purchaseOrderLines PurchaseOrderLine[]
   importRows         ImportRow[]
+  categories         SKUCategory[]
+  tags               SKUTag[]
 
   @@index([code])
   @@index([reorderThreshold]) // For finding low-stock items
+  // GIN trigram indexes on name/code: see migration add_pg_trgm_search_indexes
 }
 
 // ============================================================================
@@ -505,4 +509,71 @@ model ImportRow {
   sku    SKU?   @relation(fields: [skuId], references: [id])
 
   @@index([importId, status])
+}
+
+// ============================================================================
+// CATEGORIES & TAGS (taxonomy for browse/filter — Phase 1 foundation)
+// ============================================================================
+// Categories: hierarchical navigation (adjacency list, max depth ~4).
+// Tags: flat labels for flexible filtering (organic, fragile, clearance).
+// SKUs link to many categories (one may be primary) and many tags.
+// ============================================================================
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  parentId    String?
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent   Category?     @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[]    @relation("CategoryTree")
+  skus     SKUCategory[]
+
+  @@index([parentId])
+  @@index([slug])
+  @@index([isActive])
+}
+
+model SKUCategory {
+  skuId      String
+  categoryId String
+  isPrimary  Boolean  @default(false)
+  assignedAt DateTime @default(now())
+
+  sku      SKU      @relation(fields: [skuId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([skuId, categoryId])
+  @@index([categoryId])
+  @@index([skuId])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  color     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  skus SKUTag[]
+
+  @@index([slug])
+}
+
+model SKUTag {
+  skuId      String
+  tagId      String
+  assignedAt DateTime @default(now())
+
+  sku SKU @relation(fields: [skuId], references: [id], onDelete: Cascade)
+  tag Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([skuId, tagId])
+  @@index([tagId])
 }
