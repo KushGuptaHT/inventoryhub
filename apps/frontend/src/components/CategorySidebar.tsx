@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { CategoryCreateForm } from './CategoryCreateForm'
 import { fetchCategoryTree } from '../lib/taxonomy/category.service'
 import { queryKeys } from '../lib/query-keys'
 import type { Category } from '../types/api'
@@ -6,6 +7,7 @@ import type { Category } from '../types/api'
 type CategorySidebarProps = {
   selectedCategoryId: string | null
   onSelectCategory: (categoryId: string | null) => void
+  canManage?: boolean
 }
 
 const CategoryTreeNodes = ({
@@ -50,6 +52,7 @@ const CategoryTreeNodes = ({
 export function CategorySidebar({
   selectedCategoryId,
   onSelectCategory,
+  canManage = false,
 }: CategorySidebarProps) {
   const categories = useQuery({
     queryKey: queryKeys.categories,
@@ -64,6 +67,7 @@ export function CategorySidebar({
       <div className="category-sidebar-header">
         <h3>Categories</h3>
       </div>
+      {canManage ? <CategoryCreateForm /> : null}
       <button
         type="button"
         className={
@@ -87,7 +91,11 @@ export function CategorySidebar({
           onSelectCategory={onSelectCategory}
         />
       ) : (
-        <p className="muted">No categories yet. Managers can add them via API.</p>
+        <p className="muted">
+          {canManage
+            ? 'No categories yet. Add one above.'
+            : 'No categories configured.'}
+        </p>
       )}
     </aside>
   )

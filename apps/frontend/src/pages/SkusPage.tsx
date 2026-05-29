@@ -250,6 +250,7 @@ export function SkusPage() {
         <CategorySidebar
           selectedCategoryId={filters.categoryId}
           onSelectCategory={setCategoryId}
+          canManage={canManage}
         />
 
         <div className="sku-browse-main">
@@ -257,6 +258,7 @@ export function SkusPage() {
             selectedTagIds={filters.tagIds}
             onToggleTag={toggleTagId}
             onClearTags={clearTags}
+            canManage={canManage}
           />
 
           <div className="inline-form">
@@ -316,6 +318,7 @@ export function SkusPage() {
           <SkuDetailStrip
             skuId={selectedSkuId}
             onClose={() => setSelectedSkuId(null)}
+            canManage={canManage}
           />
 
           <Status

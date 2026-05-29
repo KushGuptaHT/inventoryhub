@@ -447,6 +447,78 @@
   background: #f8fafc;
 }
 
+.taxonomy-create-form {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.taxonomy-create-form input,
+.taxonomy-create-form select {
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
+.taxonomy-create-form button {
+  font-size: 13px;
+}
+
+.tag-create-form {
+  grid-template-columns: 1fr auto auto;
+}
+
+.tag-filter-block {
+  display: grid;
+  gap: 10px;
+}
+
+.taxonomy-assign-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.taxonomy-assign-row select {
+  min-width: 160px;
+}
+
+.checkbox-inline {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  gap: 6px;
+}
+
+.sku-assigned-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.sku-assigned-list li {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.link-button.danger {
+  color: var(--danger);
+}
+
 @media (max-width: 800px) {
   .app-shell {
     grid-template-columns: 1fr;
