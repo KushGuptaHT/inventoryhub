@@ -106,6 +106,18 @@
   padding: 18px 28px;
 }
 
+.topbar-actions {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.warehouse-session {
+  font-size: 13px;
+  min-width: 200px;
+}
+
 .topbar div {
   display: grid;
   gap: 2px;

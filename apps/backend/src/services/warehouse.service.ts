@@ -26,8 +26,19 @@ export const warehouseService = {
 
   findMany: async (query: WarehouseListQuery) => {
     const skip = (query.page - 1) * query.perPage;
+    const search = query.search?.trim();
     return prisma.warehouse.findMany({
-      where: query.includeInactive ? undefined : { isActive: true },
+      where: {
+        ...(query.includeInactive ? {} : { isActive: true }),
+        ...(search
+          ? {
+              OR: [
+                { code: { contains: search, mode: "insensitive" } },
+                { name: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      },
       orderBy: { createdAt: "desc" },
       skip,
       take: query.perPage,
@@ -35,8 +46,19 @@ export const warehouseService = {
   },
 
   count: async (query: WarehouseListQuery) => {
+    const search = query.search?.trim();
     return prisma.warehouse.count({
-      where: query.includeInactive ? undefined : { isActive: true },
+      where: {
+        ...(query.includeInactive ? {} : { isActive: true }),
+        ...(search
+          ? {
+              OR: [
+                { code: { contains: search, mode: "insensitive" } },
+                { name: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      },
     });
   },
 

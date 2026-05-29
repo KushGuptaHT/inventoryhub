@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StatCard } from '../components/StatCard'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
 import { queryKeys } from '../lib/query-keys'
-import type { DashboardSummary, PaginatedResponse, Warehouse } from '../types/api'
+import { useWarehouseContext } from '../lib/warehouse-context'
+import type { DashboardSummary } from '../types/api'
 
 const currency = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -12,12 +13,15 @@ const currency = new Intl.NumberFormat('en-US', {
 })
 
 export function DashboardPage() {
+  const { activeWarehouse, warehouses } = useWarehouseContext()
   const [warehouseId, setWarehouseId] = useState('')
-  const warehouses = useQuery({
-    queryKey: queryKeys.warehouses,
-    queryFn: () =>
-      apiRequest<PaginatedResponse<Warehouse>>('/warehouses?perPage=100'),
-  })
+
+  // Dashboard scope starts from session warehouse but remains independently changeable.
+  useEffect(() => {
+    if (activeWarehouse) {
+      setWarehouseId(activeWarehouse.id)
+    }
+  }, [activeWarehouse?.id])
   const dashboard = useQuery({
     queryKey: [...queryKeys.dashboard, warehouseId],
     queryFn: () =>
@@ -41,7 +45,7 @@ export function DashboardPage() {
             onChange={(event) => setWarehouseId(event.target.value)}
           >
             <option value="">Global summary</option>
-            {warehouses.data?.items.map((warehouse) => (
+            {warehouses.map((warehouse) => (
               <option key={warehouse.id} value={warehouse.id}>
                 {warehouse.code} — {warehouse.name}
               </option>

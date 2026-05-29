@@ -1,20 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
 import { queryKeys } from '../lib/query-keys'
-import type { ForecastResponse, PaginatedResponse, Warehouse } from '../types/api'
+import { useWarehouseContext } from '../lib/warehouse-context'
+import type { ForecastResponse } from '../types/api'
 
 export function ForecastPage() {
+  const { activeWarehouse, warehouses } = useWarehouseContext()
   const [warehouseId, setWarehouseId] = useState('')
   const [page, setPage] = useState(1)
   const perPage = 25
 
-  const warehouses = useQuery({
-    queryKey: queryKeys.warehouses,
-    queryFn: () =>
-      apiRequest<PaginatedResponse<Warehouse>>('/warehouses?perPage=50'),
-  })
+  useEffect(() => {
+    if (activeWarehouse) {
+      setWarehouseId(activeWarehouse.id)
+    }
+  }, [activeWarehouse?.id])
 
   const forecast = useQuery({
     queryKey: [...queryKeys.forecast, warehouseId, page, perPage],
@@ -54,7 +56,7 @@ export function ForecastPage() {
             }}
           >
             <option value="">All warehouses</option>
-            {warehouses.data?.items.map((warehouse) => (
+            {warehouses.map((warehouse) => (
               <option key={warehouse.id} value={warehouse.id}>
                 {warehouse.code} — {warehouse.name}
               </option>

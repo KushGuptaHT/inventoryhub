@@ -1,5 +1,9 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { clearAuth, getStoredAuth } from '../lib/auth'
+import {
+  clearStoredActiveWarehouse,
+  useWarehouseContext,
+} from '../lib/warehouse-context'
 import { UserRole } from '../types/api'
 
 const navItems = [
@@ -16,11 +20,14 @@ const navItems = [
 export function AppLayout() {
   const navigate = useNavigate()
   const auth = getStoredAuth()
+  const { activeWarehouse, setActiveWarehouse, warehouses, isLoading } =
+    useWarehouseContext()
   const roleLabel =
     auth?.user.role === UserRole.MANAGER ? 'Manager' : 'Operator'
 
   const logout = () => {
     clearAuth()
+    clearStoredActiveWarehouse()
     navigate('/login')
   }
 
@@ -51,9 +58,41 @@ export function AppLayout() {
             <strong>{auth?.user.name ?? 'Inventory user'}</strong>
             <span>{roleLabel}</span>
           </div>
-          <button type="button" onClick={logout}>
-            Log out
-          </button>
+          <div className="topbar-actions">
+            <label className="warehouse-session">
+              Working in
+              <select
+                value={activeWarehouse?.id ?? ''}
+                disabled={isLoading}
+                onChange={(event) => {
+                  const warehouse = warehouses.find(
+                    (item) => item.id === event.target.value,
+                  )
+                  if (warehouse) {
+                    setActiveWarehouse({
+                      id: warehouse.id,
+                      code: warehouse.code,
+                      name: warehouse.name,
+                    })
+                  }
+                }}
+              >
+                <option value="">
+                  {warehouses.length === 0
+                    ? 'No warehouses'
+                    : 'Select warehouse…'}
+                </option>
+                {warehouses.map((warehouse) => (
+                  <option key={warehouse.id} value={warehouse.id}>
+                    {warehouse.code} — {warehouse.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="button" onClick={logout}>
+              Log out
+            </button>
+          </div>
         </header>
         <Outlet />
       </main>

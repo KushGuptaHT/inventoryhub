@@ -28,6 +28,8 @@ export const warehouseListQuerySchema = z.object({
     .coerce.boolean()
     .optional()
     .default(false),
+  /** Case-insensitive partial match on code or name (uses pg_trgm GIN indexes). */
+  search: z.string().optional(),
 });
 
 export type WarehouseCreateInput = z.infer<typeof warehouseCreateSchema>;

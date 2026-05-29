@@ -16,6 +16,7 @@ import { closeQueues } from "./lib/queues";
 import { redis } from "./lib/redis";
 import { jwtPlugin } from "./plugins/jwt";
 import { alertRoutes } from "./routes/alerts";
+import { categoryRoutes } from "./routes/categories";
 import { dashboardRoutes } from "./routes/dashboard";
 import { forecastRoutes } from "./routes/forecast";
 import { movementRoutes } from "./routes/movements";
@@ -23,6 +24,7 @@ import { authRoutes } from "./routes/auth";
 import { importRoutes } from "./routes/imports";
 import { purchaseOrderRoutes } from "./routes/purchase-orders";
 import { skuRoutes } from "./routes/skus";
+import { tagRoutes } from "./routes/tags";
 import { warehouseRoutes } from "./routes/warehouses";
 
 export const buildApp = async () => {
@@ -53,6 +55,8 @@ export const buildApp = async () => {
   );
 
   await app.register(warehouseRoutes, { prefix: "/warehouses" });
+  await app.register(categoryRoutes, { prefix: "/categories" });
+  await app.register(tagRoutes, { prefix: "/tags" });
   await app.register(skuRoutes, { prefix: "/skus" });
   await app.register(movementRoutes, { prefix: "/movements" });
   await app.register(alertRoutes, { prefix: "/alerts" });
