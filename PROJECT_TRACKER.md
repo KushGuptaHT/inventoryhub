@@ -2,7 +2,13 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase: Platform UX — Phase 1 follow-ups (complete) ✅ → Next: Phase 2 browse/filter UI
+## Current Phase: Platform UX — Phase 2 browse/filter UI (complete) ✅ → Next: Warehouse autocomplete, DataTable
+
+### Phase 2 browse/filter UI — COMPLETE
+- [x] Category sidebar on SKU list (`GET /categories?format=tree`)
+- [x] Tag filter chips + URL params (`category`, `tag`, `q`, `page`)
+- [x] SKU detail strip (categories + tags from `GET /skus/:id`)
+- [x] Plan doc: `PHASE_2_BROWSE_UI_PLAN.md`
 
 ### Phase 1 platform follow-ups — COMPLETE
 - [x] `pg_trgm` GIN indexes on SKU + Warehouse name/code
@@ -81,7 +87,8 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 | Branch | Purpose | Status | Key Checks |
 | --- | --- | --- | --- |
 | `feature/phase-1-search-autocomplete` | Search infrastructure + SKU autocomplete + `items` list contract | **Merged** (PR #11) | `pnpm test:unit`; `pnpm test:int`; `pnpm --dir apps/frontend build` |
-| `feature/phase-1-platform-followups` | pg_trgm + warehouse session + category/tags APIs | Ready for PR | tsc; unit; int; frontend build |
+| `feature/phase-1-platform-followups` | pg_trgm + warehouse session + category/tags APIs | Pushed | tsc; unit; int; frontend build |
+| `feature/phase-2-sku-browse-filters` | Category sidebar + tag chips + URL filters on `/skus` | Ready for PR | frontend build |
 | `feature/warehouse-crud` | Phase 1: auth + warehouse + SKU CRUD | Complete — ready for PR | tsc pass; RBAC + cache pattern in place |
 
 ## Assignment-Critical Backend Work
@@ -122,6 +129,8 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [x] Phase 1 follow-ups: frontend build passes
 - [ ] Phase 1 follow-ups manual: topbar warehouse session + movement form defaults
 - [ ] Phase 1 follow-ups manual: create category, assign to SKU, filter `GET /skus?categoryIds[]=`
+- [x] Phase 2 browse UI: frontend build passes
+- [ ] Phase 2 browse UI manual: sidebar + tag chips + URL + SKU detail strip on `/skus`
 - [ ] **Auth RBAC**: Operator POST /warehouses → 403; Manager → 201
 - [ ] **SKU RBAC**: Operator POST /skus → 403; Manager → 201
 - [ ] **SKU cache**: GET /skus/code/:code twice — second read from Redis
