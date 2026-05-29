@@ -2,7 +2,13 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase: Platform UX — Phase 2 browse/filter UI (complete) ✅ → Next: Warehouse autocomplete, DataTable
+## Current Phase: Platform UX — Phase 2.5 taxonomy admin (complete) ✅ → Next: Warehouse autocomplete, DataTable
+
+### Phase 2.5 taxonomy admin UI — COMPLETE
+- [x] Manager: create category (name + optional parent) on `/skus`
+- [x] Manager: create tag (name + color) on `/skus`
+- [x] Manager: assign/remove categories and tags on SKU detail strip
+- [x] Plan doc: `PHASE_2_5_TAXONOMY_ADMIN_PLAN.md`
 
 ### Phase 2 browse/filter UI — COMPLETE
 - [x] Category sidebar on SKU list (`GET /categories?format=tree`)
@@ -89,6 +95,7 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 | `feature/phase-1-search-autocomplete` | Search infrastructure + SKU autocomplete + `items` list contract | **Merged** (PR #11) | `pnpm test:unit`; `pnpm test:int`; `pnpm --dir apps/frontend build` |
 | `feature/phase-1-platform-followups` | pg_trgm + warehouse session + category/tags APIs | Pushed | tsc; unit; int; frontend build |
 | `feature/phase-2-sku-browse-filters` | Category sidebar + tag chips + URL filters on `/skus` | Ready for PR | frontend build |
+| `feature/phase-2-5-taxonomy-admin` | Manager taxonomy create + SKU assign UI | In progress | frontend build |
 | `feature/warehouse-crud` | Phase 1: auth + warehouse + SKU CRUD | Complete — ready for PR | tsc pass; RBAC + cache pattern in place |
 
 ## Assignment-Critical Backend Work
