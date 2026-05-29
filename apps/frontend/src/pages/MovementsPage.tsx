@@ -6,8 +6,10 @@ import {
 } from '@tanstack/react-table'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState, type FormEvent } from 'react'
+import { SkuAutocomplete } from '../components/SkuAutocomplete'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
+import type { SkuSearchResult } from '../lib/search/sku-search.service'
 import { getStoredAuth } from '../lib/auth'
 import {
   applyOptimisticListUpdate,
@@ -15,12 +17,11 @@ import {
 } from '../lib/optimistic-list'
 import { queryKeys } from '../lib/query-keys'
 import type {
-  ListResponse,
   MovementHistoryItem,
   MovementHistoryResponse,
-  Sku,
   Warehouse,
 } from '../types/api'
+import type { PaginatedResponse } from '../types/api'
 
 type MovementForm = {
   skuId: string
@@ -45,15 +46,12 @@ const emptyForm: MovementForm = {
 export function MovementsPage() {
   const queryClient = useQueryClient()
   const [form, setForm] = useState(emptyForm)
+  const [selectedSku, setSelectedSku] = useState<SkuSearchResult | null>(null)
   const [page, setPage] = useState(1)
 
-  const skus = useQuery({
-    queryKey: queryKeys.skus,
-    queryFn: () => apiRequest<ListResponse<Sku>>('/skus?perPage=25'),
-  })
   const warehouses = useQuery({
     queryKey: queryKeys.warehouses,
-    queryFn: () => apiRequest<ListResponse<Warehouse>>('/warehouses?perPage=50'),
+    queryFn: () => apiRequest<PaginatedResponse<Warehouse>>('/warehouses?perPage=50'),
   })
   const movementsQueryKey = [...queryKeys.movements, page] as const
   const movements = useQuery({
@@ -98,19 +96,18 @@ export function MovementsPage() {
         },
       }),
     onMutate: async () => {
-      const sku = skus.data?.data.find((item) => item.id === form.skuId)
-      const warehouse = warehouses.data?.data.find(
+      const warehouse = warehouses.data?.items.find(
         (item) => item.id === form.warehouseId,
       )
       const auth = getStoredAuth()
-      if (!sku || !warehouse) {
+      if (!selectedSku || !warehouse) {
         return undefined
       }
 
       const pending: MovementHistoryItem = {
         id: `optimistic-${Date.now()}`,
         type: 'ADJUSTMENT',
-        skuId: sku.id,
+        skuId: selectedSku.id,
         quantity: Math.abs(Number(form.quantityDelta)),
         quantityDelta: Number(form.quantityDelta),
         fromWarehouse: null,
@@ -118,7 +115,11 @@ export function MovementsPage() {
         notes: `${form.notes || 'Frontend stock adjustment'} (pending)`,
         createdByUserId: auth?.user.id ?? 'pending',
         createdAt: new Date().toISOString(),
-        sku: { id: sku.id, code: sku.code, name: sku.name },
+        sku: {
+          id: selectedSku.id,
+          code: selectedSku.code,
+          name: selectedSku.name,
+        },
         sourceWarehouse: null,
         destinationWarehouse: {
           id: warehouse.id,
@@ -201,17 +202,27 @@ export function MovementsPage() {
     getCoreRowModel: getCoreRowModel(),
   })
 
+  const resetMovementForm = () => {
+    setForm(emptyForm)
+    setSelectedSku(null)
+  }
+
+  const handleSkuChange = (skuId: string, sku: SkuSearchResult | null) => {
+    setForm((current) => ({ ...current, skuId }))
+    setSelectedSku(sku)
+  }
+
   const submitReceipt = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    receipt.mutate()
+    receipt.mutate(undefined, { onSuccess: resetMovementForm })
   }
   const submitAdjustment = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    adjustment.mutate()
+    adjustment.mutate(undefined, { onSuccess: resetMovementForm })
   }
   const submitTransfer = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    transfer.mutate()
+    transfer.mutate(undefined, { onSuccess: resetMovementForm })
   }
 
   return (
@@ -226,15 +237,11 @@ export function MovementsPage() {
       <div className="movement-grid">
         <form className="form-card" onSubmit={submitReceipt}>
           <h3>Receipt</h3>
-          <SelectSku
-            value={form.skuId}
-            onChange={(skuId) => setForm({ ...form, skuId })}
-            skus={skus.data?.data ?? []}
-          />
+          <SkuAutocomplete value={form.skuId} onChange={handleSkuChange} />
           <SelectWarehouse
             value={form.warehouseId}
             onChange={(warehouseId) => setForm({ ...form, warehouseId })}
-            warehouses={warehouses.data?.data ?? []}
+            warehouses={warehouses.data?.items ?? []}
             label="Warehouse"
           />
           <Quantity
@@ -245,7 +252,7 @@ export function MovementsPage() {
             value={form.notes}
             onChange={(notes) => setForm({ ...form, notes })}
           />
-          <button type="submit" disabled={receipt.isPending}>
+          <button type="submit" disabled={receipt.isPending || !form.skuId}>
             Receive stock
           </button>
           {receipt.error ? (
@@ -255,15 +262,11 @@ export function MovementsPage() {
 
         <form className="form-card" onSubmit={submitAdjustment}>
           <h3>Adjustment</h3>
-          <SelectSku
-            value={form.skuId}
-            onChange={(skuId) => setForm({ ...form, skuId })}
-            skus={skus.data?.data ?? []}
-          />
+          <SkuAutocomplete value={form.skuId} onChange={handleSkuChange} />
           <SelectWarehouse
             value={form.warehouseId}
             onChange={(warehouseId) => setForm({ ...form, warehouseId })}
-            warehouses={warehouses.data?.data ?? []}
+            warehouses={warehouses.data?.items ?? []}
             label="Warehouse"
           />
           <label>
@@ -279,7 +282,7 @@ export function MovementsPage() {
             value={form.notes}
             onChange={(notes) => setForm({ ...form, notes })}
           />
-          <button type="submit" disabled={adjustment.isPending}>
+          <button type="submit" disabled={adjustment.isPending || !form.skuId}>
             Adjust stock
           </button>
           {adjustment.error ? (
@@ -289,21 +292,17 @@ export function MovementsPage() {
 
         <form className="form-card" onSubmit={submitTransfer}>
           <h3>Transfer</h3>
-          <SelectSku
-            value={form.skuId}
-            onChange={(skuId) => setForm({ ...form, skuId })}
-            skus={skus.data?.data ?? []}
-          />
+          <SkuAutocomplete value={form.skuId} onChange={handleSkuChange} />
           <SelectWarehouse
             value={form.fromWarehouseId}
             onChange={(fromWarehouseId) => setForm({ ...form, fromWarehouseId })}
-            warehouses={warehouses.data?.data ?? []}
+            warehouses={warehouses.data?.items ?? []}
             label="From"
           />
           <SelectWarehouse
             value={form.toWarehouseId}
             onChange={(toWarehouseId) => setForm({ ...form, toWarehouseId })}
-            warehouses={warehouses.data?.data ?? []}
+            warehouses={warehouses.data?.items ?? []}
             label="To"
           />
           <Quantity
@@ -314,7 +313,7 @@ export function MovementsPage() {
             value={form.notes}
             onChange={(notes) => setForm({ ...form, notes })}
           />
-          <button type="submit" disabled={transfer.isPending}>
+          <button type="submit" disabled={transfer.isPending || !form.skuId}>
             Transfer stock
           </button>
           {transfer.error ? (
@@ -388,30 +387,6 @@ export function MovementsPage() {
         </div>
       </Status>
     </section>
-  )
-}
-
-function SelectSku({
-  value,
-  onChange,
-  skus,
-}: {
-  value: string
-  onChange: (value: string) => void
-  skus: Sku[]
-}) {
-  return (
-    <label>
-      SKU
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">Select SKU</option>
-        {skus.map((sku) => (
-          <option key={sku.id} value={sku.id}>
-            {sku.code}
-          </option>
-        ))}
-      </select>
-    </label>
   )
 }
 

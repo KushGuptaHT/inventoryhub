@@ -17,6 +17,12 @@ export class ApiError extends Error {
 type ApiOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   body?: unknown
+  /**
+   * Optional AbortSignal from TanStack Query.
+   * When the user types quickly, React Query cancels the previous request so
+   * stale results never overwrite newer ones ("latest query wins").
+   */
+  signal?: AbortSignal
 }
 
 const buildHeaders = (body: unknown) => {
@@ -39,6 +45,7 @@ export const apiRequest = async <T>(
     method: options.method ?? 'GET',
     headers: buildHeaders(options.body),
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    signal: options.signal,
   })
 
   if (response.status === 401) {

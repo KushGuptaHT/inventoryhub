@@ -184,6 +184,73 @@
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+/* Search-first combobox (shared by SKU/warehouse pickers) */
+.combobox {
+  display: grid;
+  gap: 6px;
+  position: relative;
+}
+
+.combobox-label {
+  color: var(--panel-strong);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.combobox-input-row input {
+  width: 100%;
+}
+
+.combobox-dropdown {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  list-style: none;
+  margin: 4px 0 0;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px;
+  position: absolute;
+  width: 100%;
+  z-index: 20;
+}
+
+.combobox-option {
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 10px 12px;
+}
+
+.combobox-option:hover,
+.combobox-option-active {
+  background: #eff6ff;
+}
+
+.combobox-message {
+  color: var(--muted);
+  font-size: 14px;
+  padding: 10px 12px;
+}
+
+.sku-autocomplete {
+  display: grid;
+  gap: 8px;
+}
+
+.sku-autocomplete-clear {
+  align-self: start;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+.sku-autocomplete-clear:hover {
+  background: var(--bg);
+}
+
 .table-card {
   max-height: 560px;
   overflow-x: auto;
