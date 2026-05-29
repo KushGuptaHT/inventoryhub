@@ -5,7 +5,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { SkuAutocomplete } from '../components/SkuAutocomplete'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
@@ -16,12 +16,12 @@ import {
   rollbackOptimisticListUpdate,
 } from '../lib/optimistic-list'
 import { queryKeys } from '../lib/query-keys'
+import { useWarehouseContext } from '../lib/warehouse-context'
 import type {
   MovementHistoryItem,
   MovementHistoryResponse,
   Warehouse,
 } from '../types/api'
-import type { PaginatedResponse } from '../types/api'
 
 type MovementForm = {
   skuId: string
@@ -45,14 +45,22 @@ const emptyForm: MovementForm = {
 
 export function MovementsPage() {
   const queryClient = useQueryClient()
+  const { activeWarehouse, warehouses } = useWarehouseContext()
   const [form, setForm] = useState(emptyForm)
   const [selectedSku, setSelectedSku] = useState<SkuSearchResult | null>(null)
   const [page, setPage] = useState(1)
 
-  const warehouses = useQuery({
-    queryKey: queryKeys.warehouses,
-    queryFn: () => apiRequest<PaginatedResponse<Warehouse>>('/warehouses?perPage=50'),
-  })
+  // Default movement forms to the session warehouse when operator sets one in the header.
+  useEffect(() => {
+    if (!activeWarehouse) {
+      return
+    }
+    setForm((current) => ({
+      ...current,
+      warehouseId: activeWarehouse.id,
+      fromWarehouseId: activeWarehouse.id,
+    }))
+  }, [activeWarehouse?.id])
   const movementsQueryKey = [...queryKeys.movements, page] as const
   const movements = useQuery({
     queryKey: movementsQueryKey,
@@ -96,9 +104,7 @@ export function MovementsPage() {
         },
       }),
     onMutate: async () => {
-      const warehouse = warehouses.data?.items.find(
-        (item) => item.id === form.warehouseId,
-      )
+      const warehouse = warehouses.find((item) => item.id === form.warehouseId)
       const auth = getStoredAuth()
       if (!selectedSku || !warehouse) {
         return undefined
@@ -241,7 +247,7 @@ export function MovementsPage() {
           <SelectWarehouse
             value={form.warehouseId}
             onChange={(warehouseId) => setForm({ ...form, warehouseId })}
-            warehouses={warehouses.data?.items ?? []}
+            warehouses={warehouses}
             label="Warehouse"
           />
           <Quantity
@@ -266,7 +272,7 @@ export function MovementsPage() {
           <SelectWarehouse
             value={form.warehouseId}
             onChange={(warehouseId) => setForm({ ...form, warehouseId })}
-            warehouses={warehouses.data?.items ?? []}
+            warehouses={warehouses}
             label="Warehouse"
           />
           <label>
@@ -296,13 +302,13 @@ export function MovementsPage() {
           <SelectWarehouse
             value={form.fromWarehouseId}
             onChange={(fromWarehouseId) => setForm({ ...form, fromWarehouseId })}
-            warehouses={warehouses.data?.items ?? []}
+            warehouses={warehouses}
             label="From"
           />
           <SelectWarehouse
             value={form.toWarehouseId}
             onChange={(toWarehouseId) => setForm({ ...form, toWarehouseId })}
-            warehouses={warehouses.data?.items ?? []}
+            warehouses={warehouses}
             label="To"
           />
           <Quantity
