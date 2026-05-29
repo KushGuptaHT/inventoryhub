@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
 import { queryKeys } from '../lib/query-keys'
-import type { ForecastResponse, ListResponse, Warehouse } from '../types/api'
+import type { ForecastResponse, PaginatedResponse, Warehouse } from '../types/api'
 
 export function ForecastPage() {
   const [warehouseId, setWarehouseId] = useState('')
@@ -13,7 +13,7 @@ export function ForecastPage() {
   const warehouses = useQuery({
     queryKey: queryKeys.warehouses,
     queryFn: () =>
-      apiRequest<ListResponse<Warehouse>>('/warehouses?perPage=50'),
+      apiRequest<PaginatedResponse<Warehouse>>('/warehouses?perPage=50'),
   })
 
   const forecast = useQuery({
@@ -54,7 +54,7 @@ export function ForecastPage() {
             }}
           >
             <option value="">All warehouses</option>
-            {warehouses.data?.data.map((warehouse) => (
+            {warehouses.data?.items.map((warehouse) => (
               <option key={warehouse.id} value={warehouse.id}>
                 {warehouse.code} — {warehouse.name}
               </option>

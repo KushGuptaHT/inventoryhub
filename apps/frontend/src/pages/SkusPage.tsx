@@ -8,7 +8,7 @@ import {
   rollbackOptimisticListUpdate,
 } from '../lib/optimistic-list'
 import { queryKeys } from '../lib/query-keys'
-import { UserRole, type ListResponse, type Sku } from '../types/api'
+import { UserRole, type PaginatedResponse, type Sku } from '../types/api'
 
 type SkuForm = {
   code: string
@@ -39,7 +39,7 @@ export function SkusPage() {
   const skus = useQuery({
     queryKey: skusQueryKey,
     queryFn: () =>
-      apiRequest<ListResponse<Sku>>(
+      apiRequest<PaginatedResponse<Sku>>(
         `/skus${toQueryString({ page, perPage, search })}`,
       ),
   })
@@ -67,7 +67,7 @@ export function SkusPage() {
   const deleteSku = useMutation({
     mutationFn: (id: string) => apiRequest<void>(`/skus/${id}`, { method: 'DELETE' }),
     onMutate: async (deletedId) =>
-      applyOptimisticListUpdate<ListResponse<Sku>, string>(
+      applyOptimisticListUpdate<PaginatedResponse<Sku>, string>(
         queryClient,
         skusQueryKey,
         deletedId,
@@ -75,11 +75,8 @@ export function SkusPage() {
           current
             ? {
                 ...current,
-                data: current.data.filter((sku) => sku.id !== deletedId),
-                total:
-                  current.total === undefined
-                    ? undefined
-                    : Math.max(0, current.total - 1),
+                items: current.items.filter((sku) => sku.id !== deletedId),
+                total: Math.max(0, current.total - 1),
               }
             : current,
       ),
@@ -106,7 +103,7 @@ export function SkusPage() {
         },
       }),
     onMutate: async (input) =>
-      applyOptimisticListUpdate<ListResponse<Sku>, SkuForm & { id: string }>(
+      applyOptimisticListUpdate<PaginatedResponse<Sku>, SkuForm & { id: string }>(
         queryClient,
         skusQueryKey,
         input,
@@ -114,7 +111,7 @@ export function SkusPage() {
         current
           ? {
               ...current,
-              data: current.data.map((sku) =>
+              items: current.items.map((sku) =>
                 sku.id === input.id
                   ? {
                       ...sku,
@@ -272,7 +269,7 @@ export function SkusPage() {
       <Status
         isLoading={skus.isLoading}
         error={skus.error}
-        empty={skus.data?.data.length === 0}
+        empty={skus.data?.items.length === 0}
       >
         <div className="table-card">
           <table>
@@ -286,7 +283,7 @@ export function SkusPage() {
               </tr>
             </thead>
             <tbody>
-              {skus.data?.data.map((sku) => (
+              {skus.data?.items.map((sku) => (
                 <tr key={sku.id}>
                   <td>{sku.code}</td>
                   <td>{sku.name}</td>
@@ -322,14 +319,14 @@ export function SkusPage() {
           <span>
             Page {page}
             {skus.data?.totalPages ? ` of ${skus.data.totalPages}` : ''}
-            {skus.data?.total !== undefined ? ` (${skus.data.total} active)` : ''}
+            {` (${skus.data?.total ?? 0} active)`}
           </span>
           <button
             type="button"
             disabled={
               skus.data?.totalPages !== undefined
                 ? page >= skus.data.totalPages
-                : (skus.data?.data.length ?? 0) < perPage
+                : (skus.data?.items.length ?? 0) < perPage
             }
             onClick={() => setPage((current) => current + 1)}
           >

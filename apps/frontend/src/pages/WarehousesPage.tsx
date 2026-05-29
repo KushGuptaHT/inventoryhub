@@ -8,7 +8,7 @@ import {
   rollbackOptimisticListUpdate,
 } from '../lib/optimistic-list'
 import { queryKeys } from '../lib/query-keys'
-import { UserRole, type ListResponse, type Warehouse } from '../types/api'
+import { UserRole, type PaginatedResponse, type Warehouse } from '../types/api'
 
 type WarehouseForm = {
   code: string
@@ -32,7 +32,7 @@ export function WarehousesPage() {
   const warehouses = useQuery({
     queryKey: warehousesQueryKey,
     queryFn: () =>
-      apiRequest<ListResponse<Warehouse>>(
+      apiRequest<PaginatedResponse<Warehouse>>(
         `/warehouses?page=${page}&perPage=${perPage}`,
       ),
   })
@@ -53,7 +53,7 @@ export function WarehousesPage() {
     mutationFn: (id: string) =>
       apiRequest<void>(`/warehouses/${id}`, { method: 'DELETE' }),
     onMutate: async (deletedId) =>
-      applyOptimisticListUpdate<ListResponse<Warehouse>, string>(
+      applyOptimisticListUpdate<PaginatedResponse<Warehouse>, string>(
         queryClient,
         warehousesQueryKey,
         deletedId,
@@ -61,13 +61,10 @@ export function WarehousesPage() {
           current
             ? {
                 ...current,
-                data: current.data.filter(
+                items: current.items.filter(
                   (warehouse) => warehouse.id !== deletedId,
                 ),
-                total:
-                  current.total === undefined
-                    ? undefined
-                    : Math.max(0, current.total - 1),
+                total: Math.max(0, current.total - 1),
               }
             : current,
       ),
@@ -93,7 +90,10 @@ export function WarehousesPage() {
         },
       }),
     onMutate: async (input) =>
-      applyOptimisticListUpdate<ListResponse<Warehouse>, WarehouseForm & { id: string }>(
+      applyOptimisticListUpdate<
+        PaginatedResponse<Warehouse>,
+        WarehouseForm & { id: string }
+      >(
         queryClient,
         warehousesQueryKey,
         input,
@@ -101,7 +101,7 @@ export function WarehousesPage() {
           current
             ? {
                 ...current,
-                data: current.data.map((warehouse) =>
+                items: current.items.map((warehouse) =>
                   warehouse.id === input.id
                     ? {
                         ...warehouse,
@@ -229,7 +229,7 @@ export function WarehousesPage() {
       <Status
         isLoading={warehouses.isLoading}
         error={warehouses.error}
-        empty={warehouses.data?.data.length === 0}
+        empty={warehouses.data?.items.length === 0}
       >
         <div className="table-card">
           <table>
@@ -243,7 +243,7 @@ export function WarehousesPage() {
               </tr>
             </thead>
             <tbody>
-              {warehouses.data?.data.map((warehouse) => (
+              {warehouses.data?.items.map((warehouse) => (
                 <tr key={warehouse.id}>
                   <td>{warehouse.code}</td>
                   <td>{warehouse.name}</td>
@@ -279,16 +279,14 @@ export function WarehousesPage() {
           <span>
             Page {page}
             {warehouses.data?.totalPages ? ` of ${warehouses.data.totalPages}` : ''}
-            {warehouses.data?.total !== undefined
-              ? ` (${warehouses.data.total} active)`
-              : ''}
+            {` (${warehouses.data?.total ?? 0} active)`}
           </span>
           <button
             type="button"
             disabled={
               warehouses.data?.totalPages !== undefined
                 ? page >= warehouses.data.totalPages
-                : (warehouses.data?.data.length ?? 0) < perPage
+                : (warehouses.data?.items.length ?? 0) < perPage
             }
             onClick={() => setPage((current) => current + 1)}
           >

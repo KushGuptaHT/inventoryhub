@@ -59,7 +59,9 @@ export const warehouseRoutes: FastifyPluginAsync = async (fastify) => {
       warehouseService.count(query),
     ]);
     return {
-      data: warehouses,
+      // Platform contract: every paginated list response returns `items`, not `data`.
+      // This keeps frontend list/table code reusable across entities.
+      items: warehouses,
       page: query.page,
       perPage: query.perPage,
       total,

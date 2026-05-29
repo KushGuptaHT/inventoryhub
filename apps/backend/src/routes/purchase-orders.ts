@@ -58,11 +58,18 @@ export const purchaseOrderRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: parsed.error.format() });
     }
 
-    const data = await purchaseOrderService.findMany(parsed.data);
+    const [data, total] = await Promise.all([
+      purchaseOrderService.findMany(parsed.data),
+      purchaseOrderService.count(parsed.data),
+    ]);
     return {
-      data,
+      // Platform contract: every paginated list response returns `items`, not `data`.
+      // This keeps frontend list/table code reusable across entities.
+      items: data,
       page: parsed.data.page,
       perPage: parsed.data.perPage,
+      total,
+      totalPages: Math.ceil(total / parsed.data.perPage),
     };
   });
 
