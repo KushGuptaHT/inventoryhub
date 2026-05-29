@@ -58,6 +58,47 @@ export type Sku = {
   updatedAt: string
 }
 
+export type Category = {
+  id: string
+  name: string
+  slug: string
+  parentId: string | null
+  description: string | null
+  sortOrder: number
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+  children?: Category[]
+}
+
+export type Tag = {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type SkuCategoryRef = {
+  id: string
+  name: string
+  slug: string
+  isPrimary: boolean
+}
+
+export type SkuTagRef = {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+}
+
+export type SkuDetail = Sku & {
+  categories: SkuCategoryRef[]
+  tags: SkuTagRef[]
+}
+
 /**
  * Standard paginated list response used across the entire platform.
  *

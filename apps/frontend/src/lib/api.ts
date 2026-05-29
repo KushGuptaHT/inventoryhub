@@ -82,3 +82,40 @@ export const toQueryString = (
   const value = search.toString()
   return value ? `?${value}` : ''
 }
+
+export type SkuListQueryParams = {
+  page?: number
+  perPage?: number
+  search?: string
+  includeDescendants?: boolean
+  categoryIds?: string[]
+  tagIds?: string[]
+}
+
+/**
+ * Build query string for SKU list filters.
+ * Repeats categoryIds/tagIds keys so Fastify Zod coercion receives arrays.
+ */
+export const toSkuListQueryString = (params: SkuListQueryParams) => {
+  const search = new URLSearchParams()
+  if (params.page !== undefined) {
+    search.set('page', String(params.page))
+  }
+  if (params.perPage !== undefined) {
+    search.set('perPage', String(params.perPage))
+  }
+  if (params.search) {
+    search.set('search', params.search)
+  }
+  if (params.includeDescendants !== undefined) {
+    search.set('includeDescendants', String(params.includeDescendants))
+  }
+  for (const id of params.categoryIds ?? []) {
+    search.append('categoryIds', id)
+  }
+  for (const id of params.tagIds ?? []) {
+    search.append('tagIds', id)
+  }
+  const value = search.toString()
+  return value ? `?${value}` : ''
+}

@@ -288,6 +288,165 @@
   justify-content: flex-end;
 }
 
+.sku-browse-layout {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+}
+
+.sku-browse-main {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.category-sidebar {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 8px;
+  max-height: 640px;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.category-sidebar-header h3 {
+  color: var(--panel-strong);
+  font-size: 15px;
+  margin: 0 0 8px;
+}
+
+.category-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.category-tree-item {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: block;
+  font-size: 14px;
+  padding: 8px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.category-tree-item:hover,
+.category-tree-item.active {
+  background: #eff6ff;
+  color: var(--panel-strong);
+  font-weight: 600;
+}
+
+.tag-filter {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tag-filter-label {
+  color: var(--panel-strong);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tag-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-chip {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+.tag-chip.active {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: var(--panel-strong);
+  font-weight: 600;
+}
+
+.tag-chip.clear {
+  background: transparent;
+}
+
+.tag-chip.small {
+  cursor: default;
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.filter-clear-all {
+  align-self: end;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 8px 12px;
+}
+
+.sku-detail-strip {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.sku-detail-strip-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.sku-detail-taxonomy {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.sku-detail-taxonomy ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.sku-detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sku-code-link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.sku-row-selected {
+  background: #f8fafc;
+}
+
 @media (max-width: 800px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -295,5 +454,9 @@
 
   .sidebar {
     position: static;
+  }
+
+  .sku-browse-layout {
+    grid-template-columns: 1fr;
   }
 }
