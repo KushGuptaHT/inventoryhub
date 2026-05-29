@@ -10,7 +10,7 @@ import {
 import { queryKeys } from '../lib/query-keys'
 import {
   UserRole,
-  type ListResponse,
+  type PaginatedResponse,
   type PurchaseOrder,
 } from '../types/api'
 
@@ -23,7 +23,7 @@ export function PurchaseOrdersPage() {
   const orders = useQuery({
     queryKey: ordersQueryKey,
     queryFn: () =>
-      apiRequest<ListResponse<PurchaseOrder>>(
+      apiRequest<PaginatedResponse<PurchaseOrder>>(
         `/purchase-orders${toQueryString({ perPage: 100, status })}`,
       ),
   })
@@ -38,14 +38,14 @@ export function PurchaseOrdersPage() {
   }
 
   const patchOrderStatus = (
-    current: ListResponse<PurchaseOrder> | undefined,
+    current: PaginatedResponse<PurchaseOrder> | undefined,
     id: string,
     nextStatus: PurchaseOrder['status'],
   ) =>
     current
       ? {
           ...current,
-          data: current.data.map((order) =>
+          items: current.items.map((order) =>
             order.id === id ? { ...order, status: nextStatus } : order,
           ),
         }
@@ -58,7 +58,7 @@ export function PurchaseOrdersPage() {
         body: { reason: 'Sent from frontend' },
       }),
     onMutate: async (id) =>
-      applyOptimisticListUpdate<ListResponse<PurchaseOrder>, string>(
+      applyOptimisticListUpdate<PaginatedResponse<PurchaseOrder>, string>(
         queryClient,
         ordersQueryKey,
         id,
@@ -77,7 +77,7 @@ export function PurchaseOrdersPage() {
         body: { reason: 'Received from frontend' },
       }),
     onMutate: async (id) =>
-      applyOptimisticListUpdate<ListResponse<PurchaseOrder>, string>(
+      applyOptimisticListUpdate<PaginatedResponse<PurchaseOrder>, string>(
         queryClient,
         ordersQueryKey,
         id,
@@ -96,7 +96,7 @@ export function PurchaseOrdersPage() {
         body: { reason: 'Cancelled from frontend' },
       }),
     onMutate: async (id) =>
-      applyOptimisticListUpdate<ListResponse<PurchaseOrder>, string>(
+      applyOptimisticListUpdate<PaginatedResponse<PurchaseOrder>, string>(
         queryClient,
         ordersQueryKey,
         id,
@@ -130,7 +130,7 @@ export function PurchaseOrdersPage() {
       <Status
         isLoading={orders.isLoading}
         error={orders.error}
-        empty={orders.data?.data.length === 0}
+        empty={orders.data?.items.length === 0}
       >
         <div className="table-card">
           <table>
@@ -144,7 +144,7 @@ export function PurchaseOrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {orders.data?.data.map((order) => (
+              {orders.data?.items.map((order) => (
                 <tr key={order.id}>
                   <td>{order.poNumber}</td>
                   <td>{order.status}</td>

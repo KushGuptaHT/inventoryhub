@@ -58,12 +58,20 @@ export type Sku = {
   updatedAt: string
 }
 
-export type ListResponse<T> = {
-  data: T[]
+/**
+ * Standard paginated list response used across the entire platform.
+ *
+ * Why this exists:
+ * - We intentionally standardize list response shape across entities to keep
+ *   table + search UI reusable (no per-endpoint branching like `data` vs `items`).
+ * - `total` and `totalPages` are always present so pagination is deterministic.
+ */
+export type PaginatedResponse<T> = {
+  items: T[]
   page: number
   perPage: number
-  total?: number
-  totalPages?: number
+  total: number
+  totalPages: number
 }
 
 export type MovementType = 'RECEIPT' | 'ADJUSTMENT' | 'TRANSFER'

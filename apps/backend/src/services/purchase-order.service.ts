@@ -148,6 +148,19 @@ export const purchaseOrderService = {
     return orders.map(toPurchaseOrderView);
   },
 
+  /**
+   * Count purchase orders matching the same filters as `findMany`.
+   *
+   * Intent:
+   * - Keep list endpoints consistent: { items, page, perPage, total, totalPages }
+   * - Avoid frontend special-casing per-entity pagination.
+   */
+  count: async (query: PurchaseOrderListQuery): Promise<number> => {
+    return prisma.purchaseOrder.count({
+      where: query.status ? { status: query.status } : {},
+    });
+  },
+
   findById: async (id: string): Promise<PurchaseOrderResponse | null> => {
     const order = await prisma.purchaseOrder.findUnique({
       where: { id },

@@ -32,7 +32,9 @@ export const alertRoutes: FastifyPluginAsync = async (fastify) => {
       alertService.count(parsed.data),
     ]);
     return {
-      data,
+      // Platform contract: every paginated list response returns `items`, not `data`.
+      // This keeps frontend list/table code reusable across entities.
+      items: data,
       page: parsed.data.page,
       perPage: parsed.data.perPage,
       total,

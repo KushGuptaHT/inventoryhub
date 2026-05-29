@@ -8,7 +8,7 @@ import {
   rollbackOptimisticListUpdate,
 } from '../lib/optimistic-list'
 import { queryKeys } from '../lib/query-keys'
-import { UserRole, type Alert, type ListResponse } from '../types/api'
+import { UserRole, type Alert, type PaginatedResponse } from '../types/api'
 
 export function AlertsPage() {
   const queryClient = useQueryClient()
@@ -21,7 +21,7 @@ export function AlertsPage() {
   const alerts = useQuery({
     queryKey: alertsQueryKey,
     queryFn: () =>
-      apiRequest<ListResponse<Alert>>(
+      apiRequest<PaginatedResponse<Alert>>(
         `/alerts${toQueryString({ perPage, page, status })}`,
       ),
   })
@@ -41,7 +41,7 @@ export function AlertsPage() {
         body: { reason: 'Acknowledged from frontend' },
       }),
     onMutate: async (id) =>
-      applyOptimisticListUpdate<ListResponse<Alert>, string>(
+      applyOptimisticListUpdate<PaginatedResponse<Alert>, string>(
         queryClient,
         alertsQueryKey,
         id,
@@ -49,7 +49,7 @@ export function AlertsPage() {
           current
             ? {
                 ...current,
-                data: current.data.map((alert) =>
+                items: current.items.map((alert) =>
                   alert.id === id
                     ? { ...alert, status: 'ACKNOWLEDGED' as const }
                     : alert,
@@ -70,7 +70,7 @@ export function AlertsPage() {
         body: { reason: 'Resolved from frontend' },
       }),
     onMutate: async (id) =>
-      applyOptimisticListUpdate<ListResponse<Alert>, string>(
+      applyOptimisticListUpdate<PaginatedResponse<Alert>, string>(
         queryClient,
         alertsQueryKey,
         id,
@@ -78,7 +78,7 @@ export function AlertsPage() {
           current
             ? {
                 ...current,
-                data: current.data.map((alert) =>
+                items: current.items.map((alert) =>
                   alert.id === id
                     ? { ...alert, status: 'RESOLVED' as const }
                     : alert,
@@ -132,7 +132,7 @@ export function AlertsPage() {
       <Status
         isLoading={alerts.isLoading}
         error={alerts.error}
-        empty={alerts.data?.data.length === 0}
+        empty={alerts.data?.items.length === 0}
       >
         {!canManage ? (
           <p className="muted">
@@ -153,7 +153,7 @@ export function AlertsPage() {
               </tr>
             </thead>
             <tbody>
-              {alerts.data?.data.map((alert) => (
+              {alerts.data?.items.map((alert) => (
                 <tr key={alert.id}>
                   <td>{alert.status}</td>
                   <td>
@@ -216,14 +216,14 @@ export function AlertsPage() {
           <span>
             Page {alerts.data?.page ?? page}
             {alerts.data?.totalPages ? ` of ${alerts.data.totalPages}` : ''}
-            {alerts.data?.total !== undefined ? ` (${alerts.data.total} alerts)` : ''}
+            {` (${alerts.data?.total ?? 0} alerts)`}
           </span>
           <button
             type="button"
             disabled={
               alerts.data?.totalPages !== undefined
                 ? page >= alerts.data.totalPages
-                : (alerts.data?.data.length ?? 0) < perPage
+                : (alerts.data?.items.length ?? 0) < perPage
             }
             onClick={() => setPage((current) => current + 1)}
           >

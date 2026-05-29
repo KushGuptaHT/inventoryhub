@@ -4,7 +4,7 @@ import { StatCard } from '../components/StatCard'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
 import { queryKeys } from '../lib/query-keys'
-import type { DashboardSummary, ListResponse, Warehouse } from '../types/api'
+import type { DashboardSummary, PaginatedResponse, Warehouse } from '../types/api'
 
 const currency = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -15,7 +15,8 @@ export function DashboardPage() {
   const [warehouseId, setWarehouseId] = useState('')
   const warehouses = useQuery({
     queryKey: queryKeys.warehouses,
-    queryFn: () => apiRequest<ListResponse<Warehouse>>('/warehouses?perPage=100'),
+    queryFn: () =>
+      apiRequest<PaginatedResponse<Warehouse>>('/warehouses?perPage=100'),
   })
   const dashboard = useQuery({
     queryKey: [...queryKeys.dashboard, warehouseId],
@@ -40,7 +41,7 @@ export function DashboardPage() {
             onChange={(event) => setWarehouseId(event.target.value)}
           >
             <option value="">Global summary</option>
-            {warehouses.data?.data.map((warehouse) => (
+            {warehouses.data?.items.map((warehouse) => (
               <option key={warehouse.id} value={warehouse.id}>
                 {warehouse.code} — {warehouse.name}
               </option>

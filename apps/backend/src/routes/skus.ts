@@ -63,7 +63,9 @@ export const skuRoutes: FastifyPluginAsync = async (fastify) => {
       skuService.count(parsed.data),
     ]);
     return {
-      data,
+      // Platform contract: every paginated list response returns `items`, not `data`.
+      // This keeps frontend list/table code reusable across entities.
+      items: data,
       page: parsed.data.page,
       perPage: parsed.data.perPage,
       total,
