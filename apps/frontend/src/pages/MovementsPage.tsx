@@ -7,6 +7,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { SkuAutocomplete } from '../components/SkuAutocomplete'
+import { WarehouseAutocomplete } from '../components/WarehouseAutocomplete'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
 import type { SkuSearchResult } from '../lib/search/sku-search.service'
@@ -17,11 +18,8 @@ import {
 } from '../lib/optimistic-list'
 import { queryKeys } from '../lib/query-keys'
 import { useWarehouseContext } from '../lib/warehouse-context'
-import type {
-  MovementHistoryItem,
-  MovementHistoryResponse,
-  Warehouse,
-} from '../types/api'
+import { resolveWarehouseSeed } from '../lib/warehouse-seed'
+import type { MovementHistoryItem, MovementHistoryResponse } from '../types/api'
 
 type MovementForm = {
   skuId: string
@@ -208,6 +206,19 @@ export function MovementsPage() {
     getCoreRowModel: getCoreRowModel(),
   })
 
+  const receiptWarehouseSeed = useMemo(
+    () => resolveWarehouseSeed(form.warehouseId, warehouses, activeWarehouse),
+    [form.warehouseId, warehouses, activeWarehouse],
+  )
+  const fromWarehouseSeed = useMemo(
+    () => resolveWarehouseSeed(form.fromWarehouseId, warehouses, activeWarehouse),
+    [form.fromWarehouseId, warehouses, activeWarehouse],
+  )
+  const toWarehouseSeed = useMemo(
+    () => resolveWarehouseSeed(form.toWarehouseId, warehouses, activeWarehouse),
+    [form.toWarehouseId, warehouses, activeWarehouse],
+  )
+
   const resetMovementForm = () => {
     setForm(emptyForm)
     setSelectedSku(null)
@@ -244,10 +255,10 @@ export function MovementsPage() {
         <form className="form-card" onSubmit={submitReceipt}>
           <h3>Receipt</h3>
           <SkuAutocomplete value={form.skuId} onChange={handleSkuChange} />
-          <SelectWarehouse
+          <WarehouseAutocomplete
             value={form.warehouseId}
             onChange={(warehouseId) => setForm({ ...form, warehouseId })}
-            warehouses={warehouses}
+            seedWarehouse={receiptWarehouseSeed}
             label="Warehouse"
           />
           <Quantity
@@ -258,7 +269,10 @@ export function MovementsPage() {
             value={form.notes}
             onChange={(notes) => setForm({ ...form, notes })}
           />
-          <button type="submit" disabled={receipt.isPending || !form.skuId}>
+          <button
+            type="submit"
+            disabled={receipt.isPending || !form.skuId || !form.warehouseId}
+          >
             Receive stock
           </button>
           {receipt.error ? (
@@ -269,10 +283,10 @@ export function MovementsPage() {
         <form className="form-card" onSubmit={submitAdjustment}>
           <h3>Adjustment</h3>
           <SkuAutocomplete value={form.skuId} onChange={handleSkuChange} />
-          <SelectWarehouse
+          <WarehouseAutocomplete
             value={form.warehouseId}
             onChange={(warehouseId) => setForm({ ...form, warehouseId })}
-            warehouses={warehouses}
+            seedWarehouse={receiptWarehouseSeed}
             label="Warehouse"
           />
           <label>
@@ -288,7 +302,12 @@ export function MovementsPage() {
             value={form.notes}
             onChange={(notes) => setForm({ ...form, notes })}
           />
-          <button type="submit" disabled={adjustment.isPending || !form.skuId}>
+          <button
+            type="submit"
+            disabled={
+              adjustment.isPending || !form.skuId || !form.warehouseId
+            }
+          >
             Adjust stock
           </button>
           {adjustment.error ? (
@@ -299,16 +318,18 @@ export function MovementsPage() {
         <form className="form-card" onSubmit={submitTransfer}>
           <h3>Transfer</h3>
           <SkuAutocomplete value={form.skuId} onChange={handleSkuChange} />
-          <SelectWarehouse
+          <WarehouseAutocomplete
             value={form.fromWarehouseId}
-            onChange={(fromWarehouseId) => setForm({ ...form, fromWarehouseId })}
-            warehouses={warehouses}
+            onChange={(fromWarehouseId) =>
+              setForm({ ...form, fromWarehouseId })
+            }
+            seedWarehouse={fromWarehouseSeed}
             label="From"
           />
-          <SelectWarehouse
+          <WarehouseAutocomplete
             value={form.toWarehouseId}
             onChange={(toWarehouseId) => setForm({ ...form, toWarehouseId })}
-            warehouses={warehouses}
+            seedWarehouse={toWarehouseSeed}
             label="To"
           />
           <Quantity
@@ -319,7 +340,15 @@ export function MovementsPage() {
             value={form.notes}
             onChange={(notes) => setForm({ ...form, notes })}
           />
-          <button type="submit" disabled={transfer.isPending || !form.skuId}>
+          <button
+            type="submit"
+            disabled={
+              transfer.isPending ||
+              !form.skuId ||
+              !form.fromWarehouseId ||
+              !form.toWarehouseId
+            }
+          >
             Transfer stock
           </button>
           {transfer.error ? (
@@ -393,32 +422,6 @@ export function MovementsPage() {
         </div>
       </Status>
     </section>
-  )
-}
-
-function SelectWarehouse({
-  value,
-  onChange,
-  warehouses,
-  label,
-}: {
-  value: string
-  onChange: (value: string) => void
-  warehouses: Warehouse[]
-  label: string
-}) {
-  return (
-    <label>
-      {label}
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">Select warehouse</option>
-        {warehouses.map((warehouse) => (
-          <option key={warehouse.id} value={warehouse.id}>
-            {warehouse.code}
-          </option>
-        ))}
-      </select>
-    </label>
   )
 }
 

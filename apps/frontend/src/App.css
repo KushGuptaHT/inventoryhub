@@ -263,6 +263,36 @@
   background: var(--bg);
 }
 
+.warehouse-autocomplete {
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.warehouse-autocomplete-clear {
+  align-self: start;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+.warehouse-autocomplete-clear:hover {
+  background: var(--bg);
+}
+
+.dashboard-scope {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.forecast-warehouse-filter {
+  max-width: 360px;
+}
+
 .table-card {
   max-height: 560px;
   overflow-x: auto;

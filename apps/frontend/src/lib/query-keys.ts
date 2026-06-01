@@ -13,6 +13,7 @@ export const queryKeys = {
    * Factory so each search term gets its own cache entry.
    */
   skuSearch: (term: string) => ['skus', 'search', term] as const,
+  warehouseSearch: (term: string) => ['warehouses', 'search', term] as const,
   categories: ['categories', 'tree'] as const,
   tags: ['tags', 'list'] as const,
   skuDetail: (id: string) => ['skus', 'detail', id] as const,

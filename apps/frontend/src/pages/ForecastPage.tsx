@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Status } from '../components/Status'
+import { WarehouseAutocomplete } from '../components/WarehouseAutocomplete'
 import { apiRequest, toQueryString } from '../lib/api'
 import { queryKeys } from '../lib/query-keys'
 import { useWarehouseContext } from '../lib/warehouse-context'
+import { resolveWarehouseSeed } from '../lib/warehouse-seed'
 import type { ForecastResponse } from '../types/api'
 
 export function ForecastPage() {
@@ -17,6 +19,11 @@ export function ForecastPage() {
       setWarehouseId(activeWarehouse.id)
     }
   }, [activeWarehouse?.id])
+
+  const warehouseSeed = useMemo(
+    () => resolveWarehouseSeed(warehouseId, warehouses, activeWarehouse),
+    [warehouseId, warehouses, activeWarehouse],
+  )
 
   const forecast = useQuery({
     queryKey: [...queryKeys.forecast, warehouseId, page, perPage],
@@ -45,24 +52,18 @@ export function ForecastPage() {
         </div>
       </div>
 
-      <div className="inline-form">
-        <label>
-          Warehouse filter
-          <select
-            value={warehouseId}
-            onChange={(event) => {
-              setWarehouseId(event.target.value)
-              setPage(1)
-            }}
-          >
-            <option value="">All warehouses</option>
-            {warehouses.map((warehouse) => (
-              <option key={warehouse.id} value={warehouse.id}>
-                {warehouse.code} — {warehouse.name}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="forecast-warehouse-filter">
+        <WarehouseAutocomplete
+          value={warehouseId}
+          onChange={(id) => {
+            setWarehouseId(id)
+            setPage(1)
+          }}
+          seedWarehouse={warehouseSeed}
+          allowEmpty
+          label="Warehouse filter"
+          placeholder="All warehouses — search to filter…"
+        />
       </div>
 
       <Status

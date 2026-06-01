@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { StatCard } from '../components/StatCard'
 import { Status } from '../components/Status'
+import { WarehouseAutocomplete } from '../components/WarehouseAutocomplete'
 import { apiRequest, toQueryString } from '../lib/api'
 import { queryKeys } from '../lib/query-keys'
 import { useWarehouseContext } from '../lib/warehouse-context'
+import { resolveWarehouseSeed } from '../lib/warehouse-seed'
 import type { DashboardSummary } from '../types/api'
 
 const currency = new Intl.NumberFormat('en-US', {
@@ -22,6 +24,12 @@ export function DashboardPage() {
       setWarehouseId(activeWarehouse.id)
     }
   }, [activeWarehouse?.id])
+
+  const warehouseSeed = useMemo(
+    () => resolveWarehouseSeed(warehouseId, warehouses, activeWarehouse),
+    [warehouseId, warehouses, activeWarehouse],
+  )
+
   const dashboard = useQuery({
     queryKey: [...queryKeys.dashboard, warehouseId],
     queryFn: () =>
@@ -39,18 +47,15 @@ export function DashboardPage() {
           <p className="eyebrow">Phase 4 cache-backed summary</p>
           <h2>Dashboard</h2>
         </div>
-        <div className="actions">
-          <select
+        <div className="actions dashboard-scope">
+          <WarehouseAutocomplete
             value={warehouseId}
-            onChange={(event) => setWarehouseId(event.target.value)}
-          >
-            <option value="">Global summary</option>
-            {warehouses.map((warehouse) => (
-              <option key={warehouse.id} value={warehouse.id}>
-                {warehouse.code} — {warehouse.name}
-              </option>
-            ))}
-          </select>
+            onChange={(id) => setWarehouseId(id)}
+            seedWarehouse={warehouseSeed}
+            allowEmpty
+            label="Scope"
+            placeholder="Global summary — search to filter…"
+          />
           <button type="button" onClick={() => void dashboard.refetch()}>
             Refresh
           </button>
