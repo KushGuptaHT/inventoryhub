@@ -2,7 +2,14 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase: Platform UX — Phase 3 warehouse autocomplete (complete) ✅ → Next: DataTable
+## Current Phase: Platform scale-up — DataTable + merge + Phase 6 (in progress)
+
+See [`PHASES_OVERVIEW.md`](PHASES_OVERVIEW.md) and [`SCALE_UP_ROADMAP.md`](SCALE_UP_ROADMAP.md).
+
+### Phase 4 (Platform): Shared DataTable — COMPLETE
+- [x] `DataTable` + `ListPagination` components
+- [x] Migrated Warehouses, Alerts, SKUs list tables
+- [x] Plan doc: `PHASE_4_DATA_TABLE_PLAN.md`
 
 ### Phase 3 warehouse autocomplete — COMPLETE
 - [x] `warehouse-search.service` + `useWarehouseSearch` + `WarehouseAutocomplete`
@@ -87,12 +94,12 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [x] Dashboard warehouse filter and list filters
 - [x] Forecasting view
 
-### Phase 6: Testing & Docs (8 hours)
-- [ ] Unit tests with Vitest
-- [ ] Integration tests (real DB + concurrency tests)
-- [ ] E2E tests with Playwright
-- [ ] README.md with setup and architecture
-- [ ] ARCHITECTURE.md with decisions
+### Phase 6: Testing & Docs (8 hours) — parallel with scale-up
+- [x] `ARCHITECTURE.md` exists (core + platform UX section)
+- [x] `PHASES_OVERVIEW.md` + `SCALE_UP_ROADMAP.md` (phase map + merge guide)
+- [ ] Expand unit tests (Vitest)
+- [ ] E2E tests with Playwright (login → browse → movement)
+- [ ] Close manual QA checklist in Verification Log
 - [ ] 5-7 minute Loom walkthrough
 
 ## Branch Work Log
@@ -104,6 +111,7 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 | `feature/phase-2-sku-browse-filters` | Category sidebar + tag chips + URL filters on `/skus` | Ready for PR | frontend build |
 | `feature/phase-2-5-taxonomy-admin` | Manager taxonomy create + SKU assign UI | Ready for PR | frontend build |
 | `feature/phase-3-warehouse-autocomplete` | Warehouse search pickers on movements/filters | Ready for PR | frontend build |
+| `feature/platform-scale-up` | DataTable + PHASES_OVERVIEW + SCALE_UP_ROADMAP | In progress | frontend build |
 | `feature/warehouse-crud` | Phase 1: auth + warehouse + SKU CRUD | Complete — ready for PR | tsc pass; RBAC + cache pattern in place |
 
 ## Assignment-Critical Backend Work
@@ -148,6 +156,8 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [ ] Phase 2 browse UI manual: sidebar + tag chips + URL + SKU detail strip on `/skus`
 - [x] Phase 3 warehouse autocomplete: frontend build passes
 - [ ] Phase 3 warehouse autocomplete manual: Movements type-to-search warehouse + submit
+- [x] Phase 4 DataTable: frontend build passes
+- [ ] Phase 4 DataTable manual: pagination on Warehouses, Alerts, SKUs unchanged
 - [ ] **Auth RBAC**: Operator POST /warehouses → 403; Manager → 201
 - [ ] **SKU RBAC**: Operator POST /skus → 403; Manager → 201
 - [ ] **SKU cache**: GET /skus/code/:code twice — second read from Redis

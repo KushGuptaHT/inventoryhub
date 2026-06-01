@@ -92,3 +92,38 @@ Forecast is a read-only analytics endpoint and UI:
 - TanStack Query for server state + invalidation + optimistic updates
 - Role-aware UI (backend still enforces permissions)
 
+## Platform UX (scale-up)
+
+Search and browse patterns are layered so domain logic does not live in monolithic components.
+
+### Search infrastructure
+
+```
+apiRequest (+ AbortSignal)
+  → useDebouncedSearch (debounce, cancel stale)
+    → *-search.service (GET /skus or /warehouses?search=)
+      → useSkuSearch | useWarehouseSearch
+        → SkuAutocomplete | WarehouseAutocomplete
+          → Combobox (keyboard nav only)
+```
+
+### Warehouse session
+
+- Key: `inventoryhub.activeWarehouse` in `localStorage`
+- Topbar selector sets default scope for Movements, Dashboard, Forecast
+- `resolveWarehouseSeed()` shows labels when forms pre-fill from session
+
+### Taxonomy (categories & tags)
+
+- **Categories:** adjacency list, tree cache `categories:tree`, SKU filters via `categoryIds[]` + descendants
+- **Tags:** flat labels, AND filter via repeated `tagIds[]`
+- **UI:** sidebar + chips + URL params on `/skus`; managers create/assign on SKU detail strip
+
+### List UI
+
+- Paginated APIs use `{ items, page, perPage, total, totalPages }`
+- **`DataTable`** + **`ListPagination`** for master-data list pages (SKUs, warehouses, alerts)
+- **Movements history** keeps TanStack Table (richer column defs)
+
+Phase map: [`PHASES_OVERVIEW.md`](PHASES_OVERVIEW.md). Execution: [`SCALE_UP_ROADMAP.md`](SCALE_UP_ROADMAP.md).
+
