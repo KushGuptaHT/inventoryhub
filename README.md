@@ -70,10 +70,20 @@ This includes the **50-concurrent-transfer** gate proving row-locking prevents n
 
 ### E2E (Playwright)
 
+Requires **backend** (`:4000`), **frontend** (`:5173`), and seed data:
+
 ```bash
+docker-compose up -d
+pnpm --dir apps/backend db:seed
+pnpm --dir apps/backend dev    # terminal 1
+pnpm --dir apps/frontend dev   # terminal 2
+
 pnpm exec playwright install chromium
 pnpm test:e2e
 ```
+
+Login runs once in `auth.setup.ts` and reuses saved session (avoids auth rate limits).
+If you see `Login failed (429)`, restart the backend after pulling latest code.
 
 ## Performance seed (optional)
 

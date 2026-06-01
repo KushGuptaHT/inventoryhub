@@ -43,11 +43,13 @@ export const buildApp = async () => {
   await app.register(jwtPlugin);
 
   // WHY rate limit only /auth: stops brute-force password guessing (assignment §4.7)
+  // Dev/test use a high cap so Playwright and local QA are not blocked by 429.
+  const isProduction = process.env.NODE_ENV === "production";
   await app.register(
     async (authScope) => {
       await authScope.register(rateLimit, {
-        max: 10,
-        timeWindow: "15 minutes",
+        max: isProduction ? 10 : 1_000,
+        timeWindow: isProduction ? "15 minutes" : "1 minute",
       });
       await authScope.register(authRoutes);
     },

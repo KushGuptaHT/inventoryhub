@@ -1,16 +1,14 @@
 import { test, expect } from "@playwright/test";
+import { expectAppReady } from "./helpers";
 
 /**
- * End-to-end: login → browse SKUs → record a stock receipt on Movements.
- * Requires backend (4000), frontend (5173), DB seeded (users + NIKE-AIR-001 + WH-MAIN).
+ * Browse SKUs and record a stock receipt (manager session from auth.setup).
+ * Requires backend :4000, frontend :5173, seed (NIKE-AIR-001, WH-MAIN).
  */
 test.describe("platform operator flow", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Email").fill("manager@inventoryhub.test");
-    await page.getByLabel("Password").fill("Password123!");
-    await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await page.goto("/");
+    await expectAppReady(page);
   });
 
   test("browse SKUs page loads with category sidebar", async ({ page }) => {
