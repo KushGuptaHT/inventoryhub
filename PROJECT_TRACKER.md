@@ -2,7 +2,14 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase: Platform UX — Phase 2.5 taxonomy admin (complete) ✅ → Next: Warehouse autocomplete, DataTable
+## Current Phase: Platform UX — Phase 3 warehouse autocomplete (complete) ✅ → Next: DataTable
+
+### Phase 3 warehouse autocomplete — COMPLETE
+- [x] `warehouse-search.service` + `useWarehouseSearch` + `WarehouseAutocomplete`
+- [x] `resolveWarehouseSeed` for session/default labels
+- [x] Movements: receipt/adjustment/transfer use search-first warehouse pickers
+- [x] Dashboard + Forecast: warehouse scope with optional clear (global / all)
+- [x] Plan doc: `PHASE_3_WAREHOUSE_AUTOCOMPLETE_PLAN.md`
 
 ### Phase 2.5 taxonomy admin UI — COMPLETE
 - [x] Manager: create category (name + optional parent) on `/skus`
@@ -95,7 +102,8 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 | `feature/phase-1-search-autocomplete` | Search infrastructure + SKU autocomplete + `items` list contract | **Merged** (PR #11) | `pnpm test:unit`; `pnpm test:int`; `pnpm --dir apps/frontend build` |
 | `feature/phase-1-platform-followups` | pg_trgm + warehouse session + category/tags APIs | Pushed | tsc; unit; int; frontend build |
 | `feature/phase-2-sku-browse-filters` | Category sidebar + tag chips + URL filters on `/skus` | Ready for PR | frontend build |
-| `feature/phase-2-5-taxonomy-admin` | Manager taxonomy create + SKU assign UI | In progress | frontend build |
+| `feature/phase-2-5-taxonomy-admin` | Manager taxonomy create + SKU assign UI | Ready for PR | frontend build |
+| `feature/phase-3-warehouse-autocomplete` | Warehouse search pickers on movements/filters | Ready for PR | frontend build |
 | `feature/warehouse-crud` | Phase 1: auth + warehouse + SKU CRUD | Complete — ready for PR | tsc pass; RBAC + cache pattern in place |
 
 ## Assignment-Critical Backend Work
@@ -138,6 +146,8 @@ This file tracks the assignment deliverables and the engineering milestones. Kee
 - [ ] Phase 1 follow-ups manual: create category, assign to SKU, filter `GET /skus?categoryIds[]=`
 - [x] Phase 2 browse UI: frontend build passes
 - [ ] Phase 2 browse UI manual: sidebar + tag chips + URL + SKU detail strip on `/skus`
+- [x] Phase 3 warehouse autocomplete: frontend build passes
+- [ ] Phase 3 warehouse autocomplete manual: Movements type-to-search warehouse + submit
 - [ ] **Auth RBAC**: Operator POST /warehouses → 403; Manager → 201
 - [ ] **SKU RBAC**: Operator POST /skus → 403; Manager → 201
 - [ ] **SKU cache**: GET /skus/code/:code twice — second read from Redis
