@@ -2,14 +2,20 @@
 
 This file tracks the assignment deliverables and the engineering milestones. Keep it updated after each focused feature so the final submission does not become a last-minute documentation scramble.
 
-## Current Phase: Platform scale-up — DataTable + merge + Phase 6 (in progress)
+## Current Phase: Platform scale-up — polish + Phase 6 (in progress)
 
 See [`PHASES_OVERVIEW.md`](PHASES_OVERVIEW.md) and [`SCALE_UP_ROADMAP.md`](SCALE_UP_ROADMAP.md).
 
 ### Phase 4 (Platform): Shared DataTable — COMPLETE
 - [x] `DataTable` + `ListPagination` components
-- [x] Migrated Warehouses, Alerts, SKUs list tables
+- [x] Migrated Warehouses, Alerts, SKUs, Forecast, Purchase Orders list tables
 - [x] Plan doc: `PHASE_4_DATA_TABLE_PLAN.md`
+
+### Platform polish — COMPLETE
+- [x] Category sidebar SKU counts (`includeCounts=true`)
+- [x] Manager delete category / delete tag in UI
+- [x] Barcode / exact SKU code lookup on Movements
+- [ ] Typesense (deferred — Postgres + pg_trgm sufficient)
 
 ### Phase 3 warehouse autocomplete — COMPLETE
 - [x] `warehouse-search.service` + `useWarehouseSearch` + `WarehouseAutocomplete`
@@ -97,9 +103,11 @@ See [`PHASES_OVERVIEW.md`](PHASES_OVERVIEW.md) and [`SCALE_UP_ROADMAP.md`](SCALE
 ### Phase 6: Testing & Docs (8 hours) — parallel with scale-up
 - [x] `ARCHITECTURE.md` exists (core + platform UX section)
 - [x] `PHASES_OVERVIEW.md` + `SCALE_UP_ROADMAP.md` (phase map + merge guide)
-- [ ] Expand unit tests (Vitest)
-- [ ] E2E tests with Playwright (login → browse → movement)
-- [ ] Close manual QA checklist in Verification Log
+- [x] `MANUAL_QA.md` — structured manual QA checklist
+- [x] Unit tests: `slug.unit.test.ts`, `category-cache.unit.test.ts`
+- [x] E2E: `tests/e2e/platform-flow.spec.ts` (login → SKUs → movement receipt)
+- [ ] Run E2E in CI or locally with servers up
+- [ ] Close manual QA checkboxes after walkthrough
 - [ ] 5-7 minute Loom walkthrough
 
 ## Branch Work Log
@@ -111,7 +119,7 @@ See [`PHASES_OVERVIEW.md`](PHASES_OVERVIEW.md) and [`SCALE_UP_ROADMAP.md`](SCALE
 | `feature/phase-2-sku-browse-filters` | Category sidebar + tag chips + URL filters on `/skus` | Ready for PR | frontend build |
 | `feature/phase-2-5-taxonomy-admin` | Manager taxonomy create + SKU assign UI | Ready for PR | frontend build |
 | `feature/phase-3-warehouse-autocomplete` | Warehouse search pickers on movements/filters | Ready for PR | frontend build |
-| `feature/platform-scale-up` | DataTable + PHASES_OVERVIEW + SCALE_UP_ROADMAP | In progress | frontend build |
+| `feature/platform-scale-up` | DataTable, polish, Phase 6 tests, docs | Ready for PR | unit; frontend build; e2e manual |
 | `feature/warehouse-crud` | Phase 1: auth + warehouse + SKU CRUD | Complete — ready for PR | tsc pass; RBAC + cache pattern in place |
 
 ## Assignment-Critical Backend Work

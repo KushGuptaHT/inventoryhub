@@ -9,10 +9,10 @@
 
 | # | Workstream | Status | Notes |
 | --- | --- | --- | --- |
-| 1 | **DataTable** | In progress | Shared list + pagination for SKUs, warehouses, alerts |
+| 1 | **DataTable** | Done | SKUs, warehouses, alerts, forecast, POs |
 | 2 | **Merge platform branches** | Planned | See merge order below |
-| 3 | **Phase 6 (parallel)** | Ongoing | E2E, ARCHITECTURE updates, manual QA checklist |
-| 4 | **Polish (optional)** | Backlog | Counts, barcode, taxonomy edit/delete UI |
+| 3 | **Phase 6 (parallel)** | In progress | Unit + E2E specs, `MANUAL_QA.md` |
+| 4 | **Polish** | Done (except Typesense) | Counts, barcode, delete category/tag |
 
 ---
 
