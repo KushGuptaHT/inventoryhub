@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 /**
  * End-to-end: login → browse SKUs → record a stock receipt on Movements.
- * Requires backend (4000), frontend (5173), DB seeded, and at least one warehouse.
+ * Requires backend (4000), frontend (5173), DB seeded (users + NIKE-AIR-001 + WH-MAIN).
  */
 test.describe("platform operator flow", () => {
   test.beforeEach(async ({ page }) => {
@@ -26,35 +26,32 @@ test.describe("platform operator flow", () => {
     await page.getByRole("link", { name: "Movements" }).click();
     await expect(page.getByRole("heading", { name: "Movements" })).toBeVisible();
 
-    const skuSearch = page
-      .getByRole("heading", { name: "Receipt" })
-      .locator("..")
-      .getByPlaceholder("Search SKU code or name…");
+    const receiptForm = page
+      .locator("form.form-card")
+      .filter({ has: page.getByRole("heading", { name: "Receipt" }) });
 
-    await skuSearch.fill("NIKE");
-    await page.waitForTimeout(400);
-    const option = page.getByRole("option").first();
-    if (await option.isVisible().catch(() => false)) {
-      await option.click();
-    } else {
-      test.skip(true, "No SKU match for NIKE in seed data");
-    }
+    const skuCombobox = receiptForm.getByRole("combobox").first();
+    await skuCombobox.click();
+    await skuCombobox.fill("NIKE");
 
-    const warehouseSearch = page
-      .getByRole("heading", { name: "Receipt" })
-      .locator("..")
-      .getByPlaceholder("Search warehouse code or name…");
-    if (await warehouseSearch.isVisible()) {
-      await warehouseSearch.fill("WH");
-      await page.waitForTimeout(400);
-      const whOption = page.getByRole("option").first();
-      if (await whOption.isVisible().catch(() => false)) {
-        await whOption.click();
-      }
-    }
+    const skuOption = receiptForm.getByRole("option").filter({
+      hasText: /NIKE/i,
+    });
+    await expect(skuOption.first()).toBeVisible({ timeout: 10_000 });
+    await skuOption.first().click();
 
-    await page.getByRole("button", { name: "Receive stock" }).click();
-    await expect(page.locator(".form-error")).toHaveCount(0);
+    const warehouseCombobox = receiptForm.getByRole("combobox").nth(1);
+    await warehouseCombobox.click();
+    await warehouseCombobox.fill("WH");
+
+    const whOption = receiptForm.getByRole("option").filter({
+      hasText: /WH-MAIN|Main Warehouse/i,
+    });
+    await expect(whOption.first()).toBeVisible({ timeout: 10_000 });
+    await whOption.first().click();
+
+    await receiptForm.getByRole("button", { name: "Receive stock" }).click();
+    await expect(receiptForm.locator(".form-error")).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Movements" })).toBeVisible();
   });
 });

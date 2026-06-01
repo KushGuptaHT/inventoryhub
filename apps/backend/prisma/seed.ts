@@ -1,13 +1,13 @@
 // ============================================================================
-// DEV SEED — test users
+// DEV SEED — users + sample warehouse/SKU for E2E and manual QA
 // ============================================================================
-// WHAT:  Creates Manager + Operator accounts for local testing.
-// WHY:   You need both roles to test 403 vs 201 on POST /warehouses.
-// SKIP:  You'd register only Operators and never test Manager-only routes easily.
+// WHAT:  Manager/Operator accounts plus one warehouse and NIKE sample SKU.
+// WHY:   E2E (platform-flow) searches "NIKE" / "WH"; empty DB skips that test.
 // HOW:   pnpm --dir apps/backend db:seed
 //
 // manager@inventoryhub.test / Password123!  → MANAGER
 // operator@inventoryhub.test / Password123! → OPERATOR
+// Sample: warehouse WH-MAIN, SKU NIKE-AIR-001
 // ============================================================================
 
 import "dotenv/config";
@@ -59,6 +59,34 @@ async function main() {
     });
     console.log(`Seeded user: ${user.email} (${user.role})`);
   }
+
+  const warehouse = await prisma.warehouse.upsert({
+    where: { code: "WH-MAIN" },
+    update: { name: "Main Warehouse", address: "100 Demo St", isActive: true },
+    create: {
+      code: "WH-MAIN",
+      name: "Main Warehouse",
+      address: "100 Demo St",
+    },
+  });
+  console.log(`Seeded warehouse: ${warehouse.code}`);
+
+  const sku = await prisma.sKU.upsert({
+    where: { code: "NIKE-AIR-001" },
+    update: {
+      name: "Nike Air Runner",
+      unitCost: 89.99,
+      reorderThreshold: 10,
+      isActive: true,
+    },
+    create: {
+      code: "NIKE-AIR-001",
+      name: "Nike Air Runner",
+      unitCost: 89.99,
+      reorderThreshold: 10,
+    },
+  });
+  console.log(`Seeded SKU: ${sku.code}`);
 }
 
 main()
