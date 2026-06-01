@@ -7,6 +7,9 @@ type TagListResponse = {
 
 export const fetchTags = () => apiRequest<TagListResponse>('/tags')
 
+export const deleteTag = (id: string) =>
+  apiRequest<{ affectedSkus: number }>(`/tags/${id}`, { method: 'DELETE' })
+
 export const createTag = (body: { name: string; color?: string | null }) =>
   apiRequest<Tag>('/tags', { method: 'POST', body })
 

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { DataTable, type DataTableColumn } from '../components/DataTable'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
 import { getStoredAuth } from '../lib/auth'
@@ -108,6 +109,46 @@ export function PurchaseOrdersPage() {
     onSettled: invalidateOrders,
   })
 
+  const columns = useMemo((): DataTableColumn<PurchaseOrder>[] => {
+    return [
+      { id: 'po', header: 'PO Number', cell: (row) => row.poNumber },
+      { id: 'status', header: 'Status', cell: (row) => row.status },
+      {
+        id: 'warehouse',
+        header: 'Warehouse',
+        cell: (row) =>
+          row.warehouse
+            ? `${row.warehouse.code} — ${row.warehouse.name}`
+            : row.warehouseId,
+      },
+      { id: 'lines', header: 'Lines', cell: (row) => row.lineItems.length },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cellClassName: 'actions',
+        cell: (row) => (
+          <>
+            {canManage && row.status === 'DRAFT' ? (
+              <button type="button" onClick={() => send.mutate(row.id)}>
+                Send
+              </button>
+            ) : null}
+            {row.status === 'SENT' ? (
+              <button type="button" onClick={() => receive.mutate(row.id)}>
+                Receive
+              </button>
+            ) : null}
+            {canManage && (row.status === 'DRAFT' || row.status === 'SENT') ? (
+              <button type="button" onClick={() => cancel.mutate(row.id)}>
+                Cancel
+              </button>
+            ) : null}
+          </>
+        ),
+      },
+    ]
+  }, [canManage, send, receive, cancel])
+
   return (
     <section className="page">
       <div className="page-header">
@@ -132,54 +173,11 @@ export function PurchaseOrdersPage() {
         error={orders.error}
         empty={orders.data?.items.length === 0}
       >
-        <div className="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>PO Number</th>
-                <th>Status</th>
-                <th>Warehouse</th>
-                <th>Lines</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.data?.items.map((order) => (
-                <tr key={order.id}>
-                  <td>{order.poNumber}</td>
-                  <td>{order.status}</td>
-                  <td>
-                    {order.warehouse
-                      ? `${order.warehouse.code} — ${order.warehouse.name}`
-                      : order.warehouseId}
-                  </td>
-                  <td>{order.lineItems.length}</td>
-                  <td className="actions">
-                    {canManage && order.status === 'DRAFT' ? (
-                      <button type="button" onClick={() => send.mutate(order.id)}>
-                        Send
-                      </button>
-                    ) : null}
-                    {order.status === 'SENT' ? (
-                      <button
-                        type="button"
-                        onClick={() => receive.mutate(order.id)}
-                      >
-                        Receive
-                      </button>
-                    ) : null}
-                    {canManage &&
-                    (order.status === 'DRAFT' || order.status === 'SENT') ? (
-                      <button type="button" onClick={() => cancel.mutate(order.id)}>
-                        Cancel
-                      </button>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          data={orders.data?.items ?? []}
+          getRowKey={(row) => row.id}
+        />
       </Status>
     </section>
   )

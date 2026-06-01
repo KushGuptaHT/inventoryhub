@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CategoryCreateForm } from './CategoryCreateForm'
-import { fetchCategoryTree } from '../lib/taxonomy/category.service'
+import { deleteCategory, fetchCategoryTree } from '../lib/taxonomy/category.service'
 import { queryKeys } from '../lib/query-keys'
 import type { Category } from '../types/api'
 
@@ -15,33 +15,64 @@ const CategoryTreeNodes = ({
   depth,
   selectedCategoryId,
   onSelectCategory,
+  canManage,
+  onDelete,
+  isDeleting,
 }: {
   nodes: Category[]
   depth: number
   selectedCategoryId: string | null
   onSelectCategory: (categoryId: string | null) => void
+  canManage: boolean
+  onDelete: (id: string) => void
+  isDeleting: boolean
 }) => (
   <ul className="category-tree" role="tree">
     {nodes.map((node) => (
       <li key={node.id} role="treeitem" aria-expanded>
-        <button
-          type="button"
-          className={
-            selectedCategoryId === node.id
-              ? 'category-tree-item active'
-              : 'category-tree-item'
-          }
+        <div
+          className="category-tree-row"
           style={{ paddingLeft: `${12 + depth * 14}px` }}
-          onClick={() => onSelectCategory(node.id)}
         >
-          {node.name}
-        </button>
+          <button
+            type="button"
+            className={
+              selectedCategoryId === node.id
+                ? 'category-tree-item active'
+                : 'category-tree-item'
+            }
+            onClick={() => onSelectCategory(node.id)}
+          >
+            {node.name}
+            {node.skuCount !== undefined ? (
+              <span className="category-count"> ({node.skuCount})</span>
+            ) : null}
+          </button>
+          {canManage ? (
+            <button
+              type="button"
+              className="category-delete"
+              title="Delete category"
+              disabled={isDeleting}
+              onClick={() => {
+                if (window.confirm(`Delete category "${node.name}"?`)) {
+                  onDelete(node.id)
+                }
+              }}
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
         {node.children && node.children.length > 0 ? (
           <CategoryTreeNodes
             nodes={node.children}
             depth={depth + 1}
             selectedCategoryId={selectedCategoryId}
             onSelectCategory={onSelectCategory}
+            canManage={canManage}
+            onDelete={onDelete}
+            isDeleting={isDeleting}
           />
         ) : null}
       </li>
@@ -54,11 +85,23 @@ export function CategorySidebar({
   onSelectCategory,
   canManage = false,
 }: CategorySidebarProps) {
+  const queryClient = useQueryClient()
+
   const categories = useQuery({
-    queryKey: queryKeys.categories,
+    queryKey: [...queryKeys.categories, 'counts'] as const,
     queryFn: async () => {
-      const response = await fetchCategoryTree()
+      const response = await fetchCategoryTree({ includeCounts: true })
       return response.items
+    },
+  })
+
+  const removeCategory = useMutation({
+    mutationFn: deleteCategory,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.categories })
+      if (selectedCategoryId) {
+        onSelectCategory(null)
+      }
     },
   })
 
@@ -89,6 +132,9 @@ export function CategorySidebar({
           depth={0}
           selectedCategoryId={selectedCategoryId}
           onSelectCategory={onSelectCategory}
+          canManage={canManage}
+          onDelete={(id) => removeCategory.mutate(id)}
+          isDeleting={removeCategory.isPending}
         />
       ) : (
         <p className="muted">
@@ -97,6 +143,9 @@ export function CategorySidebar({
             : 'No categories configured.'}
         </p>
       )}
+      {removeCategory.error ? (
+        <p className="form-error">{removeCategory.error.message}</p>
+      ) : null}
     </aside>
   )
 }

@@ -7,6 +7,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { SkuAutocomplete } from '../components/SkuAutocomplete'
+import { SkuBarcodeLookup } from '../components/SkuBarcodeLookup'
 import { WarehouseAutocomplete } from '../components/WarehouseAutocomplete'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
@@ -250,6 +251,8 @@ export function MovementsPage() {
           <h2>Movements</h2>
         </div>
       </div>
+
+      <SkuBarcodeLookup onSelect={handleSkuChange} />
 
       <div className="movement-grid">
         <form className="form-card" onSubmit={submitReceipt}>

@@ -33,6 +33,8 @@ export type CategoryResponse = {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  /** SKUs in this category and subcategories (when includeCounts=true). */
+  skuCount?: number;
   children?: CategoryResponse[];
 };
 
@@ -102,6 +104,36 @@ const buildTree = (
       children: buildTree(nodes, node.id),
     }));
 
+/** Sum direct SKU counts for a category and all descendants. */
+const attachSubtreeSkuCounts = (
+  tree: CategoryResponse[],
+  flat: CategoryResponse[],
+  directCounts: Map<string, number>,
+): CategoryResponse[] => {
+  const flatCache: CachedCategoryNode[] = flat.map((node) => ({
+    id: node.id,
+    name: node.name,
+    slug: node.slug,
+    parentId: node.parentId,
+    sortOrder: node.sortOrder,
+    isActive: node.isActive,
+  }));
+
+  const countFor = (categoryId: string): number => {
+    const ids = collectDescendantCategoryIds(flatCache, categoryId);
+    return ids.reduce((sum, id) => sum + (directCounts.get(id) ?? 0), 0);
+  };
+
+  const walk = (nodes: CategoryResponse[]): CategoryResponse[] =>
+    nodes.map((node) => ({
+      ...node,
+      skuCount: countFor(node.id),
+      children: node.children ? walk(node.children) : undefined,
+    }));
+
+  return walk(tree);
+};
+
 const ensureUniqueSlug = async (name: string, explicit?: string) => {
   const existing = await prisma.category.findMany({ select: { slug: true } });
   const slugs = new Set(existing.map((row) => row.slug));
@@ -125,10 +157,28 @@ export const categoryService = {
     });
     const views = rows.map(toView);
 
-    if (query.format === "tree") {
-      return buildTree(views);
+    let result =
+      query.format === "tree" ? buildTree(views) : views;
+
+    if (query.includeCounts) {
+      const grouped = await prisma.sKUCategory.groupBy({
+        by: ["categoryId"],
+        _count: { skuId: true },
+      });
+      const directCounts = new Map(
+        grouped.map((row) => [row.categoryId, row._count.skuId]),
+      );
+      if (query.format === "tree") {
+        result = attachSubtreeSkuCounts(result, views, directCounts);
+      } else {
+        result = views.map((node) => ({
+          ...node,
+          skuCount: directCounts.get(node.id) ?? 0,
+        }));
+      }
     }
-    return views;
+
+    return result;
   },
 
   findById: async (id: string): Promise<CategoryResponse | null> => {

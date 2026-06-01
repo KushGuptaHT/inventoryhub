@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useState } from 'react'
+import { DataTable, type DataTableColumn } from '../components/DataTable'
 import { Status } from '../components/Status'
 import { WarehouseAutocomplete } from '../components/WarehouseAutocomplete'
 import { apiRequest, toQueryString } from '../lib/api'
 import { queryKeys } from '../lib/query-keys'
 import { useWarehouseContext } from '../lib/warehouse-context'
 import { resolveWarehouseSeed } from '../lib/warehouse-seed'
-import type { ForecastResponse } from '../types/api'
+import type { ForecastResponse, ForecastRow } from '../types/api'
 
 export function ForecastPage() {
   const { activeWarehouse, warehouses } = useWarehouseContext()
@@ -23,6 +24,50 @@ export function ForecastPage() {
   const warehouseSeed = useMemo(
     () => resolveWarehouseSeed(warehouseId, warehouses, activeWarehouse),
     [warehouseId, warehouses, activeWarehouse],
+  )
+
+  const forecastColumns = useMemo(
+    (): DataTableColumn<ForecastRow>[] => [
+      {
+        id: 'sku',
+        header: 'SKU',
+        cell: (row) => (
+          <>
+            <strong>{row.skuCode}</strong>
+            <div className="muted">{row.skuName}</div>
+          </>
+        ),
+      },
+      {
+        id: 'warehouse',
+        header: 'Warehouse',
+        cell: (row) => (
+          <>
+            <strong>{row.warehouseCode}</strong>
+            <div className="muted">{row.warehouseName}</div>
+          </>
+        ),
+      },
+      { id: 'available', header: 'Available', cell: (row) => row.available },
+      { id: 'outflow', header: '90d outflow', cell: (row) => row.outflow90d },
+      {
+        id: 'avg',
+        header: 'Avg daily (30d)',
+        cell: (row) => row.avgDailyOutflow30d.toFixed(2),
+      },
+      {
+        id: 'days',
+        header: 'Days remaining',
+        cell: (row) =>
+          row.projectedDaysRemaining === null ? '—' : row.projectedDaysRemaining,
+      },
+      {
+        id: 'low',
+        header: 'Low stock',
+        cell: (row) => (row.isLowStock ? 'Yes' : 'No'),
+      },
+    ],
+    [],
   )
 
   const forecast = useQuery({
@@ -71,73 +116,20 @@ export function ForecastPage() {
         error={forecast.error}
         empty={forecast.data?.items.length === 0}
       >
-        <div className="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>SKU</th>
-                <th>Warehouse</th>
-                <th>Available</th>
-                <th>90d outflow</th>
-                <th>Avg daily (30d)</th>
-                <th>Days remaining</th>
-                <th>Low stock</th>
-              </tr>
-            </thead>
-            <tbody>
-              {forecast.data?.items.map((row) => (
-                <tr key={`${row.skuId}-${row.warehouseId}`}>
-                  <td>
-                    <strong>{row.skuCode}</strong>
-                    <div className="muted">{row.skuName}</div>
-                  </td>
-                  <td>
-                    <strong>{row.warehouseCode}</strong>
-                    <div className="muted">{row.warehouseName}</div>
-                  </td>
-                  <td>{row.available}</td>
-                  <td>{row.outflow90d}</td>
-                  <td>{row.avgDailyOutflow30d.toFixed(2)}</td>
-                  <td>
-                    {row.projectedDaysRemaining === null
-                      ? '—'
-                      : row.projectedDaysRemaining}
-                  </td>
-                  <td>{row.isLowStock ? 'Yes' : 'No'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="pagination">
-          <button
-            type="button"
-            disabled={page === 1}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-          >
-            Previous
-          </button>
-          <span>
-            Page {forecast.data?.page ?? page}
-            {forecast.data?.totalPages
-              ? ` of ${forecast.data.totalPages}`
-              : ''}
-            {forecast.data?.total !== undefined
-              ? ` (${forecast.data.total} rows)`
-              : ''}
-          </span>
-          <button
-            type="button"
-            disabled={
-              forecast.data?.totalPages !== undefined
-                ? page >= forecast.data.totalPages
-                : (forecast.data?.items.length ?? 0) < perPage
-            }
-            onClick={() => setPage((current) => current + 1)}
-          >
-            Next
-          </button>
-        </div>
+        <DataTable
+          columns={forecastColumns}
+          data={forecast.data?.items ?? []}
+          getRowKey={(row) => `${row.skuId}-${row.warehouseId}`}
+          pagination={{
+            page: forecast.data?.page ?? page,
+            perPage,
+            total: forecast.data?.total,
+            totalPages: forecast.data?.totalPages,
+            itemsOnPage: forecast.data?.items.length,
+            onPageChange: setPage,
+            itemLabel: 'rows',
+          }}
+        />
       </Status>
     </section>
   )

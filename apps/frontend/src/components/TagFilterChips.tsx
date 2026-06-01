@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { TagCreateForm } from './TagCreateForm'
 import { queryKeys } from '../lib/query-keys'
-import { fetchTags } from '../lib/taxonomy/tag.service'
+import { deleteTag, fetchTags } from '../lib/taxonomy/tag.service'
 
 type TagFilterChipsProps = {
   selectedTagIds: string[]
@@ -16,11 +16,20 @@ export function TagFilterChips({
   onClearTags,
   canManage = false,
 }: TagFilterChipsProps) {
+  const queryClient = useQueryClient()
+
   const tags = useQuery({
     queryKey: queryKeys.tags,
     queryFn: async () => {
       const response = await fetchTags()
       return response.items
+    },
+  })
+
+  const removeTag = useMutation({
+    mutationFn: deleteTag,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.tags })
     },
   })
 
@@ -82,6 +91,30 @@ export function TagFilterChips({
             ) : null}
           </div>
         </div>
+      ) : null}
+      {canManage && hasTags ? (
+        <ul className="tag-manage-list">
+          {tags.data!.map((tag) => (
+            <li key={tag.id}>
+              <span>{tag.name}</span>
+              <button
+                type="button"
+                className="link-button danger"
+                disabled={removeTag.isPending}
+                onClick={() => {
+                  if (window.confirm(`Delete tag "${tag.name}"?`)) {
+                    removeTag.mutate(tag.id)
+                  }
+                }}
+              >
+                Delete
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {removeTag.error ? (
+        <p className="form-error">{removeTag.error.message}</p>
       ) : null}
     </div>
   )

@@ -28,7 +28,10 @@ export function CategoryCreateForm() {
     onSuccess: async () => {
       setName('')
       setParentId('')
-      await queryClient.invalidateQueries({ queryKey: queryKeys.categories })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.categories,
+        exact: false,
+      })
     },
   })
 

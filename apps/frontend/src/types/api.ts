@@ -68,6 +68,7 @@ export type Category = {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  skuCount?: number
   children?: Category[]
 }
 

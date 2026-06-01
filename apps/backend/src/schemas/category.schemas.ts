@@ -37,6 +37,8 @@ export const skuCategoryParamsSchema = z.object({
 export const categoryListQuerySchema = z.object({
   includeInactive: z.coerce.boolean().optional().default(false),
   format: z.enum(["flat", "tree"]).optional().default("flat"),
+  /** When true, each node includes skuCount (direct + descendants for tree). */
+  includeCounts: z.coerce.boolean().optional().default(false),
 });
 
 export const skuCategoryAssignSchema = z.object({

@@ -5,8 +5,13 @@ type CategoryListResponse = {
   items: Category[]
 }
 
-export const fetchCategoryTree = () =>
-  apiRequest<CategoryListResponse>('/categories?format=tree')
+export const fetchCategoryTree = (options?: { includeCounts?: boolean }) =>
+  apiRequest<CategoryListResponse>(
+    `/categories?format=tree${options?.includeCounts ? '&includeCounts=true' : ''}`,
+  )
+
+export const deleteCategory = (id: string) =>
+  apiRequest<void>(`/categories/${id}`, { method: 'DELETE' })
 
 export const fetchCategoryFlat = () =>
   apiRequest<CategoryListResponse>('/categories?format=flat')
