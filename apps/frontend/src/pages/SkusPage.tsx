@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { CategorySidebar } from '../components/CategorySidebar'
+import { DataTable, type DataTableColumn } from '../components/DataTable'
 import { SkuDetailStrip } from '../components/SkuDetailStrip'
 import { Status } from '../components/Status'
 import { TagFilterChips } from '../components/TagFilterChips'
@@ -195,6 +196,56 @@ export function SkusPage() {
     updateSku.mutate({ ...editForm, id: editingId })
   }
 
+  const skuColumns = useMemo((): DataTableColumn<Sku>[] => {
+    const base: DataTableColumn<Sku>[] = [
+      {
+        id: 'code',
+        header: 'Code',
+        cell: (row) => (
+          <button
+            type="button"
+            className="sku-code-link"
+            onClick={() => setSelectedSkuId(row.id)}
+          >
+            {row.code}
+          </button>
+        ),
+      },
+      { id: 'name', header: 'Name', cell: (row) => row.name },
+      { id: 'unitCost', header: 'Unit cost', cell: (row) => row.unitCost },
+      {
+        id: 'threshold',
+        header: 'Threshold',
+        cell: (row) => row.reorderThreshold,
+      },
+    ]
+    if (!canManage) {
+      return base
+    }
+    return [
+      ...base,
+      {
+        id: 'actions',
+        header: 'Actions',
+        cellClassName: 'actions',
+        cell: (row) => (
+          <>
+            <button type="button" onClick={() => startEdit(row)}>
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => deleteSku.mutate(row.id)}
+              disabled={deleteSku.isPending}
+            >
+              Delete
+            </button>
+          </>
+        ),
+      },
+    ]
+  }, [canManage, deleteSku.isPending])
+
   return (
     <section className="page">
       <div className="page-header">
@@ -326,81 +377,23 @@ export function SkusPage() {
             error={skus.error}
             empty={skus.data?.items.length === 0}
           >
-            <div className="table-card">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Unit cost</th>
-                    <th>Threshold</th>
-                    {canManage ? <th>Actions</th> : null}
-                  </tr>
-                </thead>
-                <tbody>
-                  {skus.data?.items.map((sku) => (
-                    <tr
-                      key={sku.id}
-                      className={
-                        selectedSkuId === sku.id ? 'sku-row-selected' : undefined
-                      }
-                    >
-                      <td>
-                        <button
-                          type="button"
-                          className="sku-code-link"
-                          onClick={() => setSelectedSkuId(sku.id)}
-                        >
-                          {sku.code}
-                        </button>
-                      </td>
-                      <td>{sku.name}</td>
-                      <td>{sku.unitCost}</td>
-                      <td>{sku.reorderThreshold}</td>
-                      {canManage ? (
-                        <td className="actions">
-                          <button type="button" onClick={() => startEdit(sku)}>
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteSku.mutate(sku.id)}
-                            disabled={deleteSku.isPending}
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      ) : null}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="pagination">
-              <button
-                type="button"
-                disabled={filters.page === 1}
-                onClick={() => setPage(Math.max(1, filters.page - 1))}
-              >
-                Previous
-              </button>
-              <span>
-                Page {filters.page}
-                {skus.data?.totalPages ? ` of ${skus.data.totalPages}` : ''}
-                {` (${skus.data?.total ?? 0} active)`}
-              </span>
-              <button
-                type="button"
-                disabled={
-                  skus.data?.totalPages !== undefined
-                    ? filters.page >= skus.data.totalPages
-                    : (skus.data?.items.length ?? 0) < perPage
-                }
-                onClick={() => setPage(filters.page + 1)}
-              >
-                Next
-              </button>
-            </div>
+            <DataTable
+              columns={skuColumns}
+              data={skus.data?.items ?? []}
+              getRowKey={(row) => row.id}
+              getRowClassName={(row) =>
+                selectedSkuId === row.id ? 'sku-row-selected' : undefined
+              }
+              pagination={{
+                page: filters.page,
+                perPage,
+                total: skus.data?.total,
+                totalPages: skus.data?.totalPages,
+                itemsOnPage: skus.data?.items.length,
+                onPageChange: setPage,
+                itemLabel: 'active',
+              }}
+            />
             {deleteSku.error ? (
               <p className="form-error">{deleteSku.error.message}</p>
             ) : null}

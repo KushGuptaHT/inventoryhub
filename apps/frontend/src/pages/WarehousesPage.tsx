@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
+import { DataTable, type DataTableColumn } from '../components/DataTable'
 import { Status } from '../components/Status'
 import { apiRequest } from '../lib/api'
 import { getStoredAuth } from '../lib/auth'
@@ -151,6 +152,44 @@ export function WarehousesPage() {
     updateWarehouse.mutate({ ...editForm, id: editingId })
   }
 
+  const columns = useMemo((): DataTableColumn<Warehouse>[] => {
+    const base: DataTableColumn<Warehouse>[] = [
+      { id: 'code', header: 'Code', cell: (row) => row.code },
+      { id: 'name', header: 'Name', cell: (row) => row.name },
+      { id: 'address', header: 'Address', cell: (row) => row.address },
+      {
+        id: 'status',
+        header: 'Status',
+        cell: (row) => (row.isActive ? 'Active' : 'Inactive'),
+      },
+    ]
+    if (!canManage) {
+      return base
+    }
+    return [
+      ...base,
+      {
+        id: 'actions',
+        header: 'Actions',
+        cellClassName: 'actions',
+        cell: (row) => (
+          <>
+            <button type="button" onClick={() => startEdit(row)}>
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => deleteWarehouse.mutate(row.id)}
+              disabled={deleteWarehouse.isPending}
+            >
+              Delete
+            </button>
+          </>
+        ),
+      },
+    ]
+  }, [canManage, deleteWarehouse.isPending])
+
   return (
     <section className="page">
       <div className="page-header">
@@ -231,68 +270,20 @@ export function WarehousesPage() {
         error={warehouses.error}
         empty={warehouses.data?.items.length === 0}
       >
-        <div className="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Name</th>
-                <th>Address</th>
-                <th>Status</th>
-                {canManage ? <th>Actions</th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {warehouses.data?.items.map((warehouse) => (
-                <tr key={warehouse.id}>
-                  <td>{warehouse.code}</td>
-                  <td>{warehouse.name}</td>
-                  <td>{warehouse.address}</td>
-                  <td>{warehouse.isActive ? 'Active' : 'Inactive'}</td>
-                  {canManage ? (
-                    <td className="actions">
-                      <button type="button" onClick={() => startEdit(warehouse)}>
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteWarehouse.mutate(warehouse.id)}
-                        disabled={deleteWarehouse.isPending}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  ) : null}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="pagination">
-          <button
-            type="button"
-            disabled={page === 1}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-          >
-            Previous
-          </button>
-          <span>
-            Page {page}
-            {warehouses.data?.totalPages ? ` of ${warehouses.data.totalPages}` : ''}
-            {` (${warehouses.data?.total ?? 0} active)`}
-          </span>
-          <button
-            type="button"
-            disabled={
-              warehouses.data?.totalPages !== undefined
-                ? page >= warehouses.data.totalPages
-                : (warehouses.data?.items.length ?? 0) < perPage
-            }
-            onClick={() => setPage((current) => current + 1)}
-          >
-            Next
-          </button>
-        </div>
+        <DataTable
+          columns={columns}
+          data={warehouses.data?.items ?? []}
+          getRowKey={(row) => row.id}
+          pagination={{
+            page,
+            perPage,
+            total: warehouses.data?.total,
+            totalPages: warehouses.data?.totalPages,
+            itemsOnPage: warehouses.data?.items.length,
+            onPageChange: setPage,
+            itemLabel: 'active',
+          }}
+        />
         {deleteWarehouse.error ? (
           <p className="form-error">{deleteWarehouse.error.message}</p>
         ) : null}

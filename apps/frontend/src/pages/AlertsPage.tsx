@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { DataTable, type DataTableColumn } from '../components/DataTable'
 import { Status } from '../components/Status'
 import { apiRequest, toQueryString } from '../lib/api'
 import { getStoredAuth } from '../lib/auth'
@@ -105,6 +106,78 @@ export function AlertsPage() {
     onSuccess: invalidateAlerts,
   })
 
+  const columns = useMemo((): DataTableColumn<Alert>[] => {
+    return [
+      { id: 'status', header: 'Status', cell: (row) => row.status },
+      {
+        id: 'sku',
+        header: 'SKU',
+        cell: (row) => (
+          <>
+            <strong>{row.sku?.code ?? row.skuId}</strong>
+            {row.sku?.name ? <div className="muted">{row.sku.name}</div> : null}
+          </>
+        ),
+      },
+      {
+        id: 'warehouse',
+        header: 'Warehouse',
+        cell: (row) => (
+          <>
+            <strong>{row.warehouse?.code ?? row.warehouseId}</strong>
+            {row.warehouse?.name ? (
+              <div className="muted">{row.warehouse.name}</div>
+            ) : null}
+          </>
+        ),
+      },
+      { id: 'stock', header: 'Stock', cell: (row) => row.availableStock },
+      { id: 'threshold', header: 'Threshold', cell: (row) => row.reorderThreshold },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cellClassName: 'actions',
+        cell: (row) => (
+          <>
+            {canManage && row.status === 'OPEN' ? (
+              <button
+                type="button"
+                onClick={() => acknowledge.mutate(row.id)}
+                disabled={acknowledge.isPending}
+              >
+                Acknowledge
+              </button>
+            ) : null}
+            {canManage && row.status !== 'RESOLVED' ? (
+              <button
+                type="button"
+                onClick={() => resolve.mutate(row.id)}
+                disabled={resolve.isPending}
+              >
+                Resolve
+              </button>
+            ) : null}
+            {canManage && row.status !== 'RESOLVED' ? (
+              <button
+                type="button"
+                onClick={() => createPo.mutate(row.id)}
+                disabled={createPo.isPending}
+              >
+                Create PO
+              </button>
+            ) : null}
+            {!canManage ? <span className="muted">Read only</span> : null}
+          </>
+        ),
+      },
+    ]
+  }, [
+    canManage,
+    acknowledge.isPending,
+    resolve.isPending,
+    createPo.isPending,
+  ])
+
   return (
     <section className="page">
       <div className="page-header">
@@ -140,96 +213,20 @@ export function AlertsPage() {
             transitions and purchase-order creation.
           </p>
         ) : null}
-        <div className="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Status</th>
-                <th>SKU</th>
-                <th>Warehouse</th>
-                <th>Stock</th>
-                <th>Threshold</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {alerts.data?.items.map((alert) => (
-                <tr key={alert.id}>
-                  <td>{alert.status}</td>
-                  <td>
-                    <strong>{alert.sku?.code ?? alert.skuId}</strong>
-                    {alert.sku?.name ? (
-                      <div className="muted">{alert.sku.name}</div>
-                    ) : null}
-                  </td>
-                  <td>
-                    <strong>{alert.warehouse?.code ?? alert.warehouseId}</strong>
-                    {alert.warehouse?.name ? (
-                      <div className="muted">{alert.warehouse.name}</div>
-                    ) : null}
-                  </td>
-                  <td>{alert.availableStock}</td>
-                  <td>{alert.reorderThreshold}</td>
-                  <td className="actions">
-                    {canManage && alert.status === 'OPEN' ? (
-                      <button
-                        type="button"
-                        onClick={() => acknowledge.mutate(alert.id)}
-                        disabled={acknowledge.isPending}
-                      >
-                        Acknowledge
-                      </button>
-                    ) : null}
-                    {canManage && alert.status !== 'RESOLVED' ? (
-                      <button
-                        type="button"
-                        onClick={() => resolve.mutate(alert.id)}
-                        disabled={resolve.isPending}
-                      >
-                        Resolve
-                      </button>
-                    ) : null}
-                    {canManage && alert.status !== 'RESOLVED' ? (
-                      <button
-                        type="button"
-                        onClick={() => createPo.mutate(alert.id)}
-                        disabled={createPo.isPending}
-                      >
-                        Create PO
-                      </button>
-                    ) : null}
-                    {!canManage ? <span className="muted">Read only</span> : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="pagination">
-          <button
-            type="button"
-            disabled={page === 1}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-          >
-            Previous
-          </button>
-          <span>
-            Page {alerts.data?.page ?? page}
-            {alerts.data?.totalPages ? ` of ${alerts.data.totalPages}` : ''}
-            {` (${alerts.data?.total ?? 0} alerts)`}
-          </span>
-          <button
-            type="button"
-            disabled={
-              alerts.data?.totalPages !== undefined
-                ? page >= alerts.data.totalPages
-                : (alerts.data?.items.length ?? 0) < perPage
-            }
-            onClick={() => setPage((current) => current + 1)}
-          >
-            Next
-          </button>
-        </div>
+        <DataTable
+          columns={columns}
+          data={alerts.data?.items ?? []}
+          getRowKey={(row) => row.id}
+          pagination={{
+            page: alerts.data?.page ?? page,
+            perPage,
+            total: alerts.data?.total,
+            totalPages: alerts.data?.totalPages,
+            itemsOnPage: alerts.data?.items.length,
+            onPageChange: setPage,
+            itemLabel: 'alerts',
+          }}
+        />
         {acknowledge.error ? (
           <p className="form-error">Acknowledge failed: {acknowledge.error.message}</p>
         ) : null}
