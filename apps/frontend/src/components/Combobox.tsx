@@ -150,7 +150,14 @@ export function Combobox<T>({
             setActiveIndex(-1)
             openDropdown()
           }}
-          onFocus={openDropdown}
+          onFocus={() => {
+            // Avoid showing the hint dropdown just by clicking/focusing.
+            // Open on focus only when there are results (or we're loading),
+            // otherwise wait for user typing (onChange opens it).
+            if (items.length > 0 || isLoading) {
+              openDropdown()
+            }
+          }}
           onKeyDown={handleKeyDown}
         />
       </div>
