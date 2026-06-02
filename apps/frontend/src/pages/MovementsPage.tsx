@@ -25,7 +25,14 @@ import {
 import { queryKeys } from '../lib/query-keys'
 import { useWarehouseContext } from '../lib/warehouse-context'
 import { resolveWarehouseSeed } from '../lib/warehouse-seed'
-import type { MovementHistoryItem, MovementHistoryResponse } from '../types/api'
+import type {
+  ExportJobStatus,
+  MovementHistoryItem,
+  MovementHistoryResponse,
+  MovementType,
+} from '../types/api'
+import { UserRole } from '../types/api'
+import { createMovementsExportJob, fetchExportJob } from '../lib/exports.service'
 
 type MovementForm = {
   skuId: string
@@ -52,11 +59,21 @@ const emptyForm: MovementForm = {
 export function MovementsPage() {
   const queryClient = useQueryClient()
   const { activeWarehouse, warehouses } = useWarehouseContext()
+  const auth = getStoredAuth()
+  const canExport = auth?.user.role === UserRole.MANAGER
   const [form, setForm] = useState(emptyForm)
   const [selectedSku, setSelectedSku] = useState<SkuSearchResult | null>(null)
   const [cursor, setCursor] = useState<MovementCursor>(null)
   const [cursorStack, setCursorStack] = useState<MovementCursor[]>([])
   const perPage = 25
+  const [exportJobId, setExportJobId] = useState<string | null>(null)
+  const [exportFilters, setExportFilters] = useState<{
+    from: string
+    to: string
+    type: '' | MovementType
+    warehouseId: string
+    skuId: string
+  }>({ from: '', to: '', type: '', warehouseId: '', skuId: '' })
 
   // Default movement forms to the session warehouse when operator sets one in the header.
   useEffect(() => {
@@ -84,6 +101,51 @@ export function MovementsPage() {
       ),
     placeholderData: keepPreviousData,
   })
+
+  const exportJob = useQuery({
+    queryKey: ['exports', 'job', exportJobId] as const,
+    queryFn: () => fetchExportJob(exportJobId as string),
+    enabled: Boolean(exportJobId),
+    refetchInterval: (query) => {
+      const status = (query.state.data as { status?: ExportJobStatus } | undefined)
+        ?.status
+      return status === 'PENDING' || status === 'IN_PROGRESS' ? 1500 : false
+    },
+  })
+
+  const createExport = useMutation({
+    mutationFn: () =>
+      createMovementsExportJob({
+        from: exportFilters.from || undefined,
+        to: exportFilters.to || undefined,
+        type: exportFilters.type || undefined,
+        warehouseId: exportFilters.warehouseId || undefined,
+        skuId: exportFilters.skuId || undefined,
+      }),
+    onSuccess: (data) => {
+      setExportJobId(data.id)
+    },
+  })
+
+  const downloadExport = async () => {
+    if (!exportJobId) return
+    const token = auth?.accessToken
+    if (!token) return
+    const baseUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
+    const response = await fetch(`${baseUrl}/exports/${exportJobId}/download`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) {
+      throw new Error(`Download failed (${response.status})`)
+    }
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = exportJob.data?.fileName ?? `movements-${exportJobId}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const invalidateMovementViews = async () => {
     await Promise.all([
@@ -286,6 +348,102 @@ export function MovementsPage() {
           <h2>Movements</h2>
         </div>
       </div>
+
+      {canExport ? (
+        <section className="form-card wide export-card">
+          <h3>Export movements (CSV)</h3>
+          <div className="inline-form export-form">
+            <label>
+              From (UTC)
+              <input
+                type="datetime-local"
+                value={exportFilters.from}
+                onChange={(e) =>
+                  setExportFilters((c) => ({ ...c, from: e.target.value }))
+                }
+              />
+            </label>
+            <label>
+              To (UTC)
+              <input
+                type="datetime-local"
+                value={exportFilters.to}
+                onChange={(e) =>
+                  setExportFilters((c) => ({ ...c, to: e.target.value }))
+                }
+              />
+            </label>
+            <label>
+              Type
+              <select
+                value={exportFilters.type}
+                onChange={(e) =>
+                  setExportFilters((c) => ({
+                    ...c,
+                    type: e.target.value as '' | MovementType,
+                  }))
+                }
+              >
+                <option value="">All types</option>
+                <option value="RECEIPT">Receipt</option>
+                <option value="ADJUSTMENT">Adjustment</option>
+                <option value="TRANSFER">Transfer</option>
+              </select>
+            </label>
+            <label>
+              Warehouse ID (optional)
+              <input
+                value={exportFilters.warehouseId}
+                placeholder="warehouseId"
+                onChange={(e) =>
+                  setExportFilters((c) => ({
+                    ...c,
+                    warehouseId: e.target.value,
+                  }))
+                }
+              />
+            </label>
+            <label>
+              SKU ID (optional)
+              <input
+                value={exportFilters.skuId}
+                placeholder="skuId"
+                onChange={(e) =>
+                  setExportFilters((c) => ({ ...c, skuId: e.target.value }))
+                }
+              />
+            </label>
+          </div>
+          <div className="actions export-actions">
+            <button
+              type="button"
+              onClick={() => createExport.mutate()}
+              disabled={createExport.isPending}
+            >
+              {createExport.isPending ? 'Starting export…' : 'Start export'}
+            </button>
+            {exportJobId ? (
+              <span className="muted">
+                Job: <code>{exportJobId}</code>{' '}
+                {exportJob.data?.status ? `(${exportJob.data.status})` : ''}
+                {exportJob.data?.rowCount
+                  ? ` — ${exportJob.data.rowCount} rows`
+                  : ''}
+              </span>
+            ) : null}
+            {exportJob.data?.status === 'COMPLETED' ? (
+              <button type="button" onClick={() => void downloadExport()}>
+                Download CSV
+              </button>
+            ) : null}
+            {exportJob.data?.status === 'FAILED' ? (
+              <span className="form-error">
+                Export failed: {exportJob.data.errorMessage ?? 'Unknown error'}
+              </span>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <SkuBarcodeLookup onSelect={handleSkuChange} />
 

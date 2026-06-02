@@ -245,3 +245,20 @@ export type ImportRow = {
   skuId: string | null
   createdAt: string
 }
+
+export type ExportJobStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
+
+export type ExportJob = {
+  id: string
+  type: string
+  status: ExportJobStatus
+  fileName: string | null
+  filePath: string | null
+  rowCount: number | null
+  params: unknown
+  requestedBy: string
+  errorMessage: string | null
+  startedAt: string | null
+  completedAt: string | null
+  createdAt: string
+}

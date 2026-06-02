@@ -183,6 +183,19 @@
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
+.export-card h3 {
+  margin: 0;
+}
+
+.export-actions {
+  justify-content: flex-start;
+}
+
+.export-actions code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
 .edit-panel {
   background: #eff6ff;
   border: 1px solid #bfdbfe;

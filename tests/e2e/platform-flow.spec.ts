@@ -22,7 +22,9 @@ test.describe("platform operator flow", () => {
 
   test("movements receipt with SKU search", async ({ page }) => {
     await page.getByRole("link", { name: "Movements" }).click();
-    await expect(page.getByRole("heading", { name: "Movements" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Movements", exact: true }),
+    ).toBeVisible();
 
     const receiptForm = page
       .locator("form.form-card")
@@ -50,6 +52,8 @@ test.describe("platform operator flow", () => {
 
     await receiptForm.getByRole("button", { name: "Receive stock" }).click();
     await expect(receiptForm.locator(".form-error")).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Movements" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Movements", exact: true }),
+    ).toBeVisible();
   });
 });
