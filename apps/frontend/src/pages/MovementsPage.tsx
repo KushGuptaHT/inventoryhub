@@ -123,6 +123,8 @@ export function MovementsPage() {
     },
   })
 
+  const formatRowCount = (value: number) => (value === 1 ? '1 row' : `${value} rows`)
+
   const toIsoOrUndefined = (value: string) => {
     if (!value) return undefined
     const parsed = new Date(value)
@@ -367,8 +369,15 @@ export function MovementsPage() {
 
       {canExport ? (
         <section className="form-card wide export-card">
-          <h3>Export movements (CSV)</h3>
-          <div className="inline-form export-form">
+          <div className="export-header">
+            <div>
+              <h3>Export movements</h3>
+              <p className="export-subtitle">
+                Generate a CSV snapshot using the filters below.
+              </p>
+            </div>
+          </div>
+          <div className="export-grid">
             <label>
               From
               <input
@@ -433,19 +442,55 @@ export function MovementsPage() {
             >
               {createExport.isPending ? 'Starting export…' : 'Start export'}
             </button>
+            <button
+              type="button"
+              onClick={() =>
+                setExportFilters({
+                  from: '',
+                  to: '',
+                  type: '',
+                  warehouseId: '',
+                  skuId: '',
+                })
+              }
+              disabled={createExport.isPending}
+              className="secondary"
+            >
+              Reset filters
+            </button>
+            <button
+              type="button"
+              onClick={() => void downloadExport()}
+              disabled={exportJob.data?.status !== 'COMPLETED'}
+            >
+              Download CSV
+            </button>
             {exportJobId ? (
-              <span className="muted">
-                Job: <code>{exportJobId}</code>{' '}
-                {exportJob.data?.status ? `(${exportJob.data.status})` : ''}
-                {exportJob.data?.rowCount
-                  ? ` — ${exportJob.data.rowCount} rows`
-                  : ''}
+              <span className="export-status">
+                {exportJob.data?.status === 'IN_PROGRESS' ||
+                exportJob.data?.status === 'PENDING' ? (
+                  <span className="export-spinner" aria-hidden="true" />
+                ) : null}
+                <span
+                  className={[
+                    'export-chip',
+                    exportJob.data?.status ? `is-${exportJob.data.status}` : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  {exportJob.data?.status ?? 'Starting…'}
+                </span>
+                {typeof exportJob.data?.rowCount === 'number' ? (
+                  <span className="export-meta">
+                    {formatRowCount(exportJob.data.rowCount)}
+                  </span>
+                ) : null}
+                {exportJob.data?.status === 'COMPLETED' &&
+                exportJob.data?.rowCount === 0 ? (
+                  <span className="export-meta muted">(no matches)</span>
+                ) : null}
               </span>
-            ) : null}
-            {exportJob.data?.status === 'COMPLETED' ? (
-              <button type="button" onClick={() => void downloadExport()}>
-                Download CSV
-              </button>
             ) : null}
             {exportJob.data?.status === 'FAILED' ? (
               <span className="form-error">

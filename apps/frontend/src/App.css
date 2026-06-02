@@ -187,13 +187,104 @@
   margin: 0;
 }
 
+.export-card {
+  padding: 22px;
+  max-width: 920px;
+}
+
+.export-header {
+  align-items: start;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.export-subtitle {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px 0 0;
+}
+
+.export-grid {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin-top: 12px;
+}
+
 .export-actions {
+  align-items: center;
   justify-content: flex-start;
 }
 
-.export-actions code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+.export-actions button.secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.export-actions button.secondary:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.export-status {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.export-chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text);
   font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  text-transform: uppercase;
+}
+
+.export-chip.is-PENDING,
+.export-chip.is-IN_PROGRESS {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.export-chip.is-COMPLETED {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.export-chip.is-FAILED {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.export-meta {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.export-spinner {
+  animation: export-spin 900ms linear infinite;
+  border: 2px solid #bfdbfe;
+  border-radius: 50%;
+  border-top-color: #1d4ed8;
+  height: 14px;
+  width: 14px;
+}
+
+@keyframes export-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .edit-panel {
