@@ -512,6 +512,32 @@ model ImportRow {
 }
 
 // ============================================================================
+// EXPORT JOBS (CSV exports for audit/reporting)
+// ============================================================================
+// WHAT:  Track long-running exports (e.g. 500k movement rows) asynchronously.
+// WHY:   Generating large CSVs inline will time out and block the API.
+// HOW:   UI/API creates an ExportJob and enqueues BullMQ work; worker writes file.
+// ============================================================================
+model ExportJob {
+  id          String   @id @default(cuid())
+  type        String // e.g. "MOVEMENTS_CSV"
+  status      String   @default("PENDING") // "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED"
+  fileName    String?
+  filePath    String?  @db.Text
+  rowCount    Int?
+  params      Json
+  requestedBy String
+  errorMessage String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([type, status])
+  @@index([requestedBy])
+  @@index([createdAt])
+}
+
+// ============================================================================
 // CATEGORIES & TAGS (taxonomy for browse/filter — Phase 1 foundation)
 // ============================================================================
 // Categories: hierarchical navigation (adjacency list, max depth ~4).

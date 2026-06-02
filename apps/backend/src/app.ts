@@ -26,6 +26,7 @@ import { purchaseOrderRoutes } from "./routes/purchase-orders";
 import { skuRoutes } from "./routes/skus";
 import { tagRoutes } from "./routes/tags";
 import { warehouseRoutes } from "./routes/warehouses";
+import { exportRoutes } from "./routes/exports";
 
 export const buildApp = async () => {
   const app = Fastify({
@@ -64,6 +65,7 @@ export const buildApp = async () => {
   await app.register(alertRoutes, { prefix: "/alerts" });
   await app.register(purchaseOrderRoutes, { prefix: "/purchase-orders" });
   await app.register(importRoutes, { prefix: "/imports" });
+  await app.register(exportRoutes, { prefix: "/exports" });
   await app.register(dashboardRoutes, { prefix: "/dashboard" });
   await app.register(forecastRoutes, { prefix: "/forecast" });
 

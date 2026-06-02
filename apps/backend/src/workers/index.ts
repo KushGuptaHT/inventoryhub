@@ -21,10 +21,15 @@ import {
   PurchaseOrderJobName,
   type ReceivePurchaseOrderJob,
 } from "../jobs/po.jobs";
+import {
+  ExportJobName,
+  type GenerateMovementsCsvJob,
+} from "../jobs/export.jobs";
 import { closeQueues, queueConnection, QueueName } from "../lib/queues";
 import { prisma } from "../lib/prisma";
 import { redis } from "../lib/redis";
 import { alertService } from "../services/alert.service";
+import { exportService } from "../services/export.service";
 import { importService } from "../services/import.service";
 import { purchaseOrderService } from "../services/purchase-order.service";
 
@@ -65,10 +70,28 @@ const poWorker = new Worker<ReceivePurchaseOrderJob>(
   { connection: queueConnection },
 );
 
+const exportWorker = new Worker<GenerateMovementsCsvJob>(
+  QueueName.EXPORTS,
+  async (job) => {
+    if (job.name !== ExportJobName.GENERATE_MOVEMENTS_CSV) {
+      throw new Error(`Unknown export job ${job.name}`);
+    }
+    try {
+      await exportService.generateMovementsCsvToFile(job.data.exportJobId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await exportService.markFailed(job.data.exportJobId, message);
+      throw error;
+    }
+  },
+  { connection: queueConnection },
+);
+
 const queueEvents = [
   new QueueEvents(QueueName.ALERTS, { connection: queueConnection }),
   new QueueEvents(QueueName.IMPORTS, { connection: queueConnection }),
   new QueueEvents(QueueName.PO_FULFILLMENT, { connection: queueConnection }),
+  new QueueEvents(QueueName.EXPORTS, { connection: queueConnection }),
 ];
 
 const logWorkerError = (workerName: string, job: Job | undefined, error: Error) => {
@@ -88,6 +111,9 @@ importWorker.on("failed", (job, error) =>
 poWorker.on("failed", (job, error) =>
   logWorkerError("po-fulfillment", job, error),
 );
+exportWorker.on("failed", (job, error) =>
+  logWorkerError("exports", job, error),
+);
 
 const shutdown = async () => {
   console.log("Worker shutdown requested");
@@ -95,6 +121,7 @@ const shutdown = async () => {
     alertWorker.close(),
     importWorker.close(),
     poWorker.close(),
+    exportWorker.close(),
     ...queueEvents.map((events) => events.close()),
     closeQueues(),
     prisma.$disconnect(),

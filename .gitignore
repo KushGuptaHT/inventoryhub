@@ -13,6 +13,7 @@ build/
 coverage/
 playwright-report/
 playwright/.auth/
+apps/backend/exports/
 test-results/
 
 # Local environment files

@@ -25,6 +25,7 @@ export const QueueName = {
   ALERTS: "alerts",
   IMPORTS: "imports",
   PO_FULFILLMENT: "po-fulfillment",
+  EXPORTS: "exports",
 } as const;
 
 export const alertQueue = new Queue(QueueName.ALERTS, {
@@ -39,10 +40,15 @@ export const poFulfillmentQueue = new Queue(QueueName.PO_FULFILLMENT, {
   connection: queueConnection,
 });
 
+export const exportQueue = new Queue(QueueName.EXPORTS, {
+  connection: queueConnection,
+});
+
 export const closeQueues = async () => {
   await Promise.all([
     alertQueue.close(),
     importQueue.close(),
     poFulfillmentQueue.close(),
+    exportQueue.close(),
   ]);
 };
