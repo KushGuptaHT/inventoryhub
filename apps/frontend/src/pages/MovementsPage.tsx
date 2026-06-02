@@ -102,6 +102,16 @@ export function MovementsPage() {
     placeholderData: keepPreviousData,
   })
 
+  const exportWarehouseSeed = useMemo(
+    () =>
+      resolveWarehouseSeed(
+        exportFilters.warehouseId,
+        warehouses,
+        activeWarehouse,
+      ),
+    [exportFilters.warehouseId, warehouses, activeWarehouse],
+  )
+
   const exportJob = useQuery({
     queryKey: ['exports', 'job', exportJobId] as const,
     queryFn: () => fetchExportJob(exportJobId as string),
@@ -113,11 +123,17 @@ export function MovementsPage() {
     },
   })
 
+  const toIsoOrUndefined = (value: string) => {
+    if (!value) return undefined
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString()
+  }
+
   const createExport = useMutation({
     mutationFn: () =>
       createMovementsExportJob({
-        from: exportFilters.from || undefined,
-        to: exportFilters.to || undefined,
+        from: toIsoOrUndefined(exportFilters.from),
+        to: toIsoOrUndefined(exportFilters.to),
         type: exportFilters.type || undefined,
         warehouseId: exportFilters.warehouseId || undefined,
         skuId: exportFilters.skuId || undefined,
@@ -354,7 +370,7 @@ export function MovementsPage() {
           <h3>Export movements (CSV)</h3>
           <div className="inline-form export-form">
             <label>
-              From (UTC)
+              From
               <input
                 type="datetime-local"
                 value={exportFilters.from}
@@ -364,7 +380,7 @@ export function MovementsPage() {
               />
             </label>
             <label>
-              To (UTC)
+              To
               <input
                 type="datetime-local"
                 value={exportFilters.to}
@@ -390,29 +406,24 @@ export function MovementsPage() {
                 <option value="TRANSFER">Transfer</option>
               </select>
             </label>
-            <label>
-              Warehouse ID (optional)
-              <input
+            <div>
+              <WarehouseAutocomplete
                 value={exportFilters.warehouseId}
-                placeholder="warehouseId"
-                onChange={(e) =>
-                  setExportFilters((c) => ({
-                    ...c,
-                    warehouseId: e.target.value,
-                  }))
+                onChange={(warehouseId) =>
+                  setExportFilters((c) => ({ ...c, warehouseId }))
                 }
+                seedWarehouse={exportWarehouseSeed}
+                allowEmpty
+                label="Warehouse (optional)"
               />
-            </label>
-            <label>
-              SKU ID (optional)
-              <input
+            </div>
+            <div>
+              <SkuAutocomplete
                 value={exportFilters.skuId}
-                placeholder="skuId"
-                onChange={(e) =>
-                  setExportFilters((c) => ({ ...c, skuId: e.target.value }))
-                }
+                onChange={(skuId) => setExportFilters((c) => ({ ...c, skuId }))}
+                label="SKU (optional)"
               />
-            </label>
+            </div>
           </div>
           <div className="actions export-actions">
             <button
