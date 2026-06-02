@@ -129,7 +129,12 @@ export function Combobox<T>({
   }
 
   const showList = isOpen && !disabled
-  const showHint = showList && items.length === 0 && !isLoading && hintMessage
+  const showHint =
+    showList &&
+    inputValue.trim().length > 0 &&
+    items.length === 0 &&
+    !isLoading &&
+    hintMessage
   const showEmpty = showList && items.length === 0 && !isLoading && !showHint
 
   return (
