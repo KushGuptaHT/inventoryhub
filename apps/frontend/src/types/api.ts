@@ -136,10 +136,15 @@ export type MovementHistoryItem = {
 
 export type MovementHistoryResponse = {
   items: MovementHistoryItem[]
-  page: number
   perPage: number
-  total: number
-  totalPages: number
+  /** Cursor pagination (Movements history) */
+  nextCursor: { createdAt: string; id: string } | null
+  hasNext: boolean
+
+  /** Legacy page-based fields (may be omitted for cursor mode). */
+  page?: number
+  total?: number
+  totalPages?: number
 }
 
 export type AlertStatus = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED'

@@ -64,10 +64,21 @@ export type MovementHistoryItem = MovementResult["movement"] & {
 
 export type MovementHistoryResponse = {
   items: MovementHistoryItem[];
-  page: number;
   perPage: number;
-  total: number;
-  totalPages: number;
+  /**
+   * Cursor pagination for movement history.
+   * If null, the client has reached the end.
+   */
+  nextCursor: { createdAt: string; id: string } | null;
+  hasNext: boolean;
+
+  /**
+   * Legacy page-based pagination fields.
+   * Present only when server is asked for page/perPage mode.
+   */
+  page?: number;
+  total?: number;
+  totalPages?: number;
 };
 
 type StockMovementRow = {

@@ -18,7 +18,21 @@ export const movementListQuerySchema = z.object({
   type: z.enum(["RECEIPT", "ADJUSTMENT", "TRANSFER"]).optional(),
   skuId: z.string().min(1).optional(),
   warehouseId: z.string().min(1).optional(),
-});
+  /**
+   * Cursor pagination for large movement histories.
+   * Provide BOTH cursorCreatedAt and cursorId to fetch the next page.
+   */
+  cursorCreatedAt: z.string().datetime().optional(),
+  cursorId: z.string().min(1).optional(),
+}).refine(
+  (value) =>
+    (value.cursorCreatedAt && value.cursorId) ||
+    (!value.cursorCreatedAt && !value.cursorId),
+  {
+    message: "cursorCreatedAt and cursorId must be provided together",
+    path: ["cursorCreatedAt"],
+  },
+);
 
 export const receiptSchema = z.object({
   skuId: z.string().min(1, "skuId is required"),

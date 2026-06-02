@@ -315,7 +315,16 @@
   align-items: center;
   display: flex;
   gap: 12px;
-  justify-content: flex-end;
+  justify-content: space-between;
+}
+
+.pagination > button {
+  min-width: 96px;
+}
+
+.pagination > span {
+  flex: 1;
+  text-align: center;
 }
 
 .sku-browse-layout {

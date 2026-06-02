@@ -62,7 +62,6 @@ export const movementService = {
   findMany: async (
     query: MovementListQuery,
   ): Promise<MovementHistoryResponse> => {
-    const skip = (query.page - 1) * query.perPage;
     const where = {
       ...(query.type ? { type: query.type } : {}),
       ...(query.skuId ? { skuId: query.skuId } : {}),
@@ -76,6 +75,57 @@ export const movementService = {
         : {}),
     };
 
+    // Cursor pagination: no COUNT(*) for large histories.
+    if (query.cursorCreatedAt && query.cursorId) {
+      const cursorCreatedAt = new Date(query.cursorCreatedAt);
+
+      const cursorWhere = {
+        AND: [
+          where,
+          {
+            OR: [
+              { createdAt: { lt: cursorCreatedAt } },
+              {
+                AND: [
+                  { createdAt: { equals: cursorCreatedAt } },
+                  { id: { lt: query.cursorId } },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const rows = await prisma.stockMovement.findMany({
+        where: cursorWhere,
+        include: {
+          sku: { select: { id: true, code: true, name: true } },
+          source: { select: { id: true, code: true, name: true } },
+          destination: { select: { id: true, code: true, name: true } },
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: query.perPage + 1,
+      });
+
+      const hasNext = rows.length > query.perPage;
+      const pageItems = hasNext ? rows.slice(0, query.perPage) : rows;
+      const last = pageItems[pageItems.length - 1];
+
+      return {
+        items: pageItems.map((movement) => ({
+          ...toMovementView(movement),
+          sku: movement.sku,
+          sourceWarehouse: movement.source,
+          destinationWarehouse: movement.destination,
+        })),
+        perPage: query.perPage,
+        hasNext,
+        nextCursor: last ? { createdAt: last.createdAt.toISOString(), id: last.id } : null,
+      };
+    }
+
+    // Legacy page-based pagination (kept for compatibility).
+    const skip = (query.page - 1) * query.perPage;
     const [items, total] = await prisma.$transaction([
       prisma.stockMovement.findMany({
         where,
@@ -98,8 +148,16 @@ export const movementService = {
         sourceWarehouse: movement.source,
         destinationWarehouse: movement.destination,
       })),
-      page: query.page,
       perPage: query.perPage,
+      hasNext: query.page < Math.ceil(total / query.perPage),
+      nextCursor:
+        items.length > 0
+          ? {
+              createdAt: items[items.length - 1].createdAt.toISOString(),
+              id: items[items.length - 1].id,
+            }
+          : null,
+      page: query.page,
       total,
       totalPages: Math.ceil(total / query.perPage),
     };

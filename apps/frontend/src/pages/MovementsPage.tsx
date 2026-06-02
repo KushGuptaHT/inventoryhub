@@ -4,7 +4,12 @@ import {
   useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { SkuAutocomplete } from '../components/SkuAutocomplete'
 import { SkuBarcodeLookup } from '../components/SkuBarcodeLookup'
@@ -32,6 +37,8 @@ type MovementForm = {
   notes: string
 }
 
+type MovementCursor = { createdAt: string; id: string } | null
+
 const emptyForm: MovementForm = {
   skuId: '',
   warehouseId: '',
@@ -47,7 +54,9 @@ export function MovementsPage() {
   const { activeWarehouse, warehouses } = useWarehouseContext()
   const [form, setForm] = useState(emptyForm)
   const [selectedSku, setSelectedSku] = useState<SkuSearchResult | null>(null)
-  const [page, setPage] = useState(1)
+  const [cursor, setCursor] = useState<MovementCursor>(null)
+  const [cursorStack, setCursorStack] = useState<MovementCursor[]>([])
+  const perPage = 25
 
   // Default movement forms to the session warehouse when operator sets one in the header.
   useEffect(() => {
@@ -60,13 +69,20 @@ export function MovementsPage() {
       fromWarehouseId: activeWarehouse.id,
     }))
   }, [activeWarehouse?.id])
-  const movementsQueryKey = [...queryKeys.movements, page] as const
+
+  const cursorKey = cursor?.id ?? 'start'
+  const movementsQueryKey = [...queryKeys.movements, cursorKey] as const
   const movements = useQuery({
     queryKey: movementsQueryKey,
     queryFn: () =>
       apiRequest<MovementHistoryResponse>(
-        `/movements${toQueryString({ page, perPage: 25 })}`,
+        `/movements${toQueryString({
+          perPage,
+          cursorCreatedAt: cursor?.createdAt,
+          cursorId: cursor?.id,
+        })}`,
       ),
+    placeholderData: keepPreviousData,
   })
 
   const invalidateMovementViews = async () => {
@@ -142,7 +158,9 @@ export function MovementsPage() {
             ? {
                 ...current,
                 items: [pending, ...current.items],
-                total: current.total + 1,
+                ...(current.total !== undefined
+                  ? { total: current.total + 1 }
+                  : {}),
               }
             : current,
       )
@@ -178,7 +196,7 @@ export function MovementsPage() {
       },
       {
         header: 'To',
-        cell: ({ row }) => row.original.destinationWarehouse.code,
+        cell: ({ row }) => row.original.destinationWarehouse?.code ?? '-',
       },
       {
         header: 'Qty',
@@ -241,6 +259,23 @@ export function MovementsPage() {
   const submitTransfer = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     transfer.mutate(undefined, { onSuccess: resetMovementForm })
+  }
+
+  const goNext = () => {
+    const next = movements.data?.nextCursor ?? null
+    if (!next) return
+    setCursorStack((current) => [...current, cursor])
+    setCursor(next)
+  }
+
+  const goPrevious = () => {
+    setCursorStack((current) => {
+      if (current.length === 0) return current
+      const copy = current.slice()
+      const prev = copy.pop() ?? null
+      setCursor(prev)
+      return copy
+    })
   }
 
   return (
@@ -397,28 +432,19 @@ export function MovementsPage() {
         <div className="pagination">
           <button
             type="button"
-            disabled={page === 1}
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            disabled={cursorStack.length === 0}
+            onClick={goPrevious}
           >
             Previous
           </button>
           <span>
-            Page {movements.data?.page ?? page}
-            {movements.data?.totalPages
-              ? ` of ${movements.data.totalPages}`
-              : ''}
-            {movements.data?.total !== undefined
-              ? ` (${movements.data.total} movements)`
-              : ''}
+            Showing {movements.data?.items.length ?? 0} movements
+            {movements.isFetching && !movements.isLoading ? ' (updating...)' : ''}
           </span>
           <button
             type="button"
-            disabled={
-              movements.data?.totalPages !== undefined
-                ? page >= movements.data.totalPages
-                : (movements.data?.items.length ?? 0) < 25
-            }
-            onClick={() => setPage((current) => current + 1)}
+            disabled={!movements.data?.hasNext}
+            onClick={goNext}
           >
             Next
           </button>
