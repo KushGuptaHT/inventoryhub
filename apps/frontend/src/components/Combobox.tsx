@@ -153,58 +153,62 @@ export function Combobox<T>({
           onChange={(event) => {
             onInputChange(event.target.value)
             setActiveIndex(-1)
-            openDropdown()
+            if (event.target.value.trim().length > 0) {
+              openDropdown()
+            } else {
+              setIsOpen(false)
+            }
           }}
           onFocus={() => {
-            // Avoid showing the hint dropdown just by clicking/focusing.
-            // Open on focus only when there are results (or we're loading),
-            // otherwise wait for user typing (onChange opens it).
-            if (items.length > 0 || isLoading) {
+            if (
+              inputValue.trim().length > 0 &&
+              (items.length > 0 || isLoading)
+            ) {
               openDropdown()
             }
           }}
           onKeyDown={handleKeyDown}
         />
+        {showList ? (
+          <ul id={listboxId} className="combobox-dropdown" role="listbox">
+            {isLoading ? (
+              <li className="combobox-message" role="presentation">
+                Searching…
+              </li>
+            ) : null}
+            {showHint ? (
+              <li className="combobox-message" role="presentation">
+                {hintMessage}
+              </li>
+            ) : null}
+            {showEmpty ? (
+              <li className="combobox-message" role="presentation">
+                {emptyMessage}
+              </li>
+            ) : null}
+            {items.map((item, index) => (
+              <li
+                key={getItemKey(item)}
+                role="option"
+                aria-selected={index === activeIndex}
+                className={
+                  index === activeIndex
+                    ? 'combobox-option combobox-option-active'
+                    : 'combobox-option'
+                }
+                onMouseEnter={() => setActiveIndex(index)}
+                onMouseDown={(event) => {
+                  // Prevent input blur before click registers.
+                  event.preventDefault()
+                  selectItem(item)
+                }}
+              >
+                {renderItem(item)}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
-      {showList ? (
-        <ul id={listboxId} className="combobox-dropdown" role="listbox">
-          {isLoading ? (
-            <li className="combobox-message" role="presentation">
-              Searching…
-            </li>
-          ) : null}
-          {showHint ? (
-            <li className="combobox-message" role="presentation">
-              {hintMessage}
-            </li>
-          ) : null}
-          {showEmpty ? (
-            <li className="combobox-message" role="presentation">
-              {emptyMessage}
-            </li>
-          ) : null}
-          {items.map((item, index) => (
-            <li
-              key={getItemKey(item)}
-              role="option"
-              aria-selected={index === activeIndex}
-              className={
-                index === activeIndex
-                  ? 'combobox-option combobox-option-active'
-                  : 'combobox-option'
-              }
-              onMouseEnter={() => setActiveIndex(index)}
-              onMouseDown={(event) => {
-                // Prevent input blur before click registers.
-                event.preventDefault()
-                selectItem(item)
-              }}
-            >
-              {renderItem(item)}
-            </li>
-          ))}
-        </ul>
-      ) : null}
     </div>
   )
 }

@@ -10,7 +10,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { SkuAutocomplete } from '../components/SkuAutocomplete'
 import { SkuBarcodeLookup } from '../components/SkuBarcodeLookup'
 import { WarehouseAutocomplete } from '../components/WarehouseAutocomplete'
@@ -56,6 +56,14 @@ const emptyForm: MovementForm = {
   notes: '',
 }
 
+const emptyExportFilters = {
+  from: '',
+  to: '',
+  type: '' as const,
+  warehouseId: '',
+  skuId: '',
+}
+
 export function MovementsPage() {
   const queryClient = useQueryClient()
   const { activeWarehouse, warehouses } = useWarehouseContext()
@@ -73,7 +81,8 @@ export function MovementsPage() {
     type: '' | MovementType
     warehouseId: string
     skuId: string
-  }>({ from: '', to: '', type: '', warehouseId: '', skuId: '' })
+  }>(emptyExportFilters)
+  const exportStatusRef = useRef<ExportJobStatus | undefined>(undefined)
 
   // Default movement forms to the session warehouse when operator sets one in the header.
   useEffect(() => {
@@ -123,7 +132,25 @@ export function MovementsPage() {
     },
   })
 
-  const formatRowCount = (value: number) => (value === 1 ? '1 row' : `${value} rows`)
+  const clearExportJob = () => {
+    setExportJobId(null)
+    queryClient.removeQueries({ queryKey: ['exports', 'job'] })
+  }
+
+  // Clear filter fields once export finishes; keep job id until download or reset.
+  useEffect(() => {
+    const status = exportJob.data?.status
+    if (status === 'COMPLETED' && exportStatusRef.current !== 'COMPLETED') {
+      setExportFilters(emptyExportFilters)
+    }
+    exportStatusRef.current = status
+  }, [exportJob.data?.status])
+
+  const exportInProgress =
+    exportJobId &&
+    (!exportJob.data?.status ||
+      exportJob.data.status === 'PENDING' ||
+      exportJob.data.status === 'IN_PROGRESS')
 
   const toIsoOrUndefined = (value: string) => {
     if (!value) return undefined
@@ -163,6 +190,8 @@ export function MovementsPage() {
     a.download = exportJob.data?.fileName ?? `movements-${exportJobId}.csv`
     a.click()
     URL.revokeObjectURL(url)
+    clearExportJob()
+    setExportFilters(emptyExportFilters)
   }
 
   const invalidateMovementViews = async () => {
@@ -444,15 +473,10 @@ export function MovementsPage() {
             </button>
             <button
               type="button"
-              onClick={() =>
-                setExportFilters({
-                  from: '',
-                  to: '',
-                  type: '',
-                  warehouseId: '',
-                  skuId: '',
-                })
-              }
+              onClick={() => {
+                setExportFilters(emptyExportFilters)
+                clearExportJob()
+              }}
               disabled={createExport.isPending}
               className="secondary"
             >
@@ -465,31 +489,12 @@ export function MovementsPage() {
             >
               Download CSV
             </button>
-            {exportJobId ? (
+            {exportInProgress ? (
               <span className="export-status">
-                {exportJob.data?.status === 'IN_PROGRESS' ||
-                exportJob.data?.status === 'PENDING' ? (
-                  <span className="export-spinner" aria-hidden="true" />
-                ) : null}
-                <span
-                  className={[
-                    'export-chip',
-                    exportJob.data?.status ? `is-${exportJob.data.status}` : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                >
+                <span className="export-spinner" aria-hidden="true" />
+                <span className="export-chip is-IN_PROGRESS">
                   {exportJob.data?.status ?? 'Starting…'}
                 </span>
-                {typeof exportJob.data?.rowCount === 'number' ? (
-                  <span className="export-meta">
-                    {formatRowCount(exportJob.data.rowCount)}
-                  </span>
-                ) : null}
-                {exportJob.data?.status === 'COMPLETED' &&
-                exportJob.data?.rowCount === 0 ? (
-                  <span className="export-meta muted">(no matches)</span>
-                ) : null}
               </span>
             ) : null}
             {exportJob.data?.status === 'FAILED' ? (
